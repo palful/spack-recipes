@@ -23,8 +23,9 @@ class Yambo(AutotoolsPackage):
     """
 
     homepage = "http://www.yambo-code.org/index.php"
-    url = "https://github.com/yambo-code/yambo/archive/5.0.3.tar.gz"
+    url = "https://github.com/yambo-code/yambo/archive/5.0.4.tar.gz"
 
+    version('5.0.4', sha256='1841ded51cc31a4293fa79252d7ce893d998acea7ccc836e321c3edba19eae8a')
     version('5.0.3', sha256='7a5a5f3939bdb6438a3f41a3d26fff0ea6f77339e4daf6a5d850cf2a51da4414')
     version('5.0.2', sha256='a2cc0f880dd915b47efa0d5dd88cb94edffbebaff37a252183efb9e23dbd3fab')
     version('5.0.1', sha256='bbdbd08f7219d575a0f479ff05dac1f1a7b25f7e20f2165abf1b2cf28aedae92')
