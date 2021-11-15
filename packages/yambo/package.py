@@ -42,6 +42,8 @@ class Yambo(AutotoolsPackage):
     version('4.2.1', sha256='8ccd0ca75cc32d9266d4a37edd2a7396cf5038f3a68be07c0f0f77d1afc72bdc')
     version('4.2.0', sha256='9f78c4237ff363ff4e9ea5eeea671b6fff783d9a6078cc31b0b1abeb1f040f4d')
 
+    patch('hdf5.patch', sha256='b9362020b0a29abec535afd7d782b8bb643678fe9215815ca8dc9e4941cb169f')
+    
     variant('dp', default=False, description='Enable double precision')
     variant(
         'profile', values=any_combination_of('time', 'memory'),
@@ -82,6 +84,7 @@ class Yambo(AutotoolsPackage):
     depends_on('mpi', when='+mpi')
     depends_on('netcdf-c+mpi', when='+mpi')
     depends_on('hdf5+fortran')
+    depends_on('hdf5+hl')
     depends_on('hdf5+mpi', when='+mpi')
     depends_on('fftw+mpi', when='+mpi')
 
@@ -90,7 +93,8 @@ class Yambo(AutotoolsPackage):
     depends_on('fftw~mpi', when='~mpi')
 
     depends_on('netcdf-fortran')
-    depends_on('libxc@2.0.3:3.0.0')
+    depends_on('libxc@2.0.3:3.0.0', when='@:5.0.99')
+    depends_on('libxc@5.0:', when='@5.0.99:')
 
     depends_on('blas')
     depends_on('lapack')
