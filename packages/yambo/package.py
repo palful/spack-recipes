@@ -43,72 +43,65 @@ class Yambo(AutotoolsPackage):
     version('4.2.0', sha256='9f78c4237ff363ff4e9ea5eeea671b6fff783d9a6078cc31b0b1abeb1f040f4d')
 
     patch('hdf5.patch', sha256='b9362020b0a29abec535afd7d782b8bb643678fe9215815ca8dc9e4941cb169f')
-    
-    variant('dp', default=False, description='Enable double precision')
-    variant(
-        'profile', values=any_combination_of('time', 'memory'),
-        description='Activate profiling of specific sections'
-    )
-
-    variant(
-        'linalg', default='none', values=('none', 'parallel', 'slepc'),
-        description='Activate additional support for linear algebra solvers: "parallel" uses SCALAPACK and "petsc" is used for diagonalization of BSE',  multi=False
-    )
-
-    # GPU acceleration
-    variant('cuda', default=False, description='Enable CUDA support')
-    variant(
-        'cc', default='none', values=('none', '20', '30', '35', '37', '52', '61', '60', '70', '75', '80', '86'),
-        description="GPU's Compute Capability version",  multi=False
-    )
-    conflicts('cc=none', when='+cuda',
-              msg="GPU's Compute Capability version is required when +cuda")
-    depends_on('cuda', when='+cuda')
-
-    conflicts('@:4.5.3', when='+cuda',
-              msg="CUDA-Fortran available only from version 5.0.0")
-    conflicts('%gcc', when='+cuda',
-              msg="CUDA-Fortran available only with NV or PGI compilers")
-    conflicts('%intel', when='+cuda',
-              msg="CUDA-Fortran available only with NV or PGI compilers")
 
     # MPI + OpenMP parallelism
     variant('mpi', default=True, description='Enable MPI support')
     variant('openmp', default=False, description='Enable OpenMP support')
-
-    # MPI dependencies are forced, until we have proper forwarding of variants
-    #
-    # Note that yambo is used as an application, and not linked as a library,
-    # thus there will be no case where another package pulls-in e.g.
-    # netcdf-c+mpi and wants to depend on yambo~mpi.
     depends_on('mpi', when='+mpi')
-    depends_on('netcdf-c+mpi', when='+mpi')
-    depends_on('hdf5+fortran')
-    depends_on('hdf5+hl')
-    depends_on('hdf5+mpi', when='+mpi')
-    depends_on('fftw+mpi', when='+mpi')
 
-    depends_on('netcdf-c~mpi', when='~mpi')
-    depends_on('hdf5~mpi', when='~mpi')
-    depends_on('fftw~mpi', when='~mpi')
-
-    depends_on('netcdf-fortran')
-    depends_on('libxc@2.0.3:3.0.0', when='@:5.0.99')
-    depends_on('libxc@5.0:', when='@5.0.99:')
-
-    depends_on('blas')
-    depends_on('lapack')
+    # Linear algebra
+    variant('linalg', default='none', values=('none', 'parallel', 'slepc'), multi=False,
+            description='Activate additional support for linear algebra: "parallel" uses SCALAPACK and "petsc" is used for diagonalization of BSE')
     conflicts('linalg=parallel', when='~mpi',
               msg="Parallel linear algebra available only with +mpi")
-    depends_on('scalapack', when='linalg=parallel')
     conflicts('linalg=slepc', when='@:4.2.2',
               msg="SLEPc support for linear algebra available only from yambo@4.3.3")
+    depends_on('blas')
+    depends_on('lapack')
+    depends_on('scalapack', when='linalg=parallel')
     depends_on('petsc+mpi+double+complex', when='linalg=slepc +mpi+dp')
     depends_on('petsc~mpi~double+complex~superlu-dist', when='linalg=slepc ~mpi~dp')
     depends_on('petsc~mpi+double+complex', when='linalg=slepc ~mpi+dp')
     depends_on('petsc+mpi~double+complex~superlu-dist', when='linalg=slepc +mpi~dp')
     depends_on('slepc', when='linalg=slepc')
     depends_on('slepc@:3.7.4', when='@:4.5.3 linalg=slepc')
+
+    # GPU acceleration
+    variant('cuda', default=False, description='Enable CUDA support')
+    variant('cuda_arch', default='none', values=('none', '20', '30', '35', '37', '52', '61', '60', '70', '75', '80', '86'),
+            description="GPU's Compute Capability version",  multi=False)
+    conflicts('cuda_arch=none', when='+cuda',
+              msg="GPU's Compute Capability version is required when +cuda")
+    conflicts('@:4.5.3', when='+cuda',
+              msg="CUDA-Fortran available only from version 5.0.0")
+    conflicts('%gcc', when='+cuda',
+              msg="CUDA-Fortran available only with NV or PGI compilers")
+    conflicts('%intel', when='+cuda',
+              msg="CUDA-Fortran available only with NV or PGI compilers")
+    depends_on('cuda', when='+cuda')
+
+    # Other variants
+    variant('dp', default=False, description='Enable double precision')
+    variant('profile', values=any_combination_of('time', 'memory'),
+            description='Activate profiling of specific sections')
+
+    # FFTW
+    depends_on('fftw~mpi', when='~mpi')
+    depends_on('fftw+mpi', when='+mpi')
+
+    # HDF5
+    variant('parallel_io', default=False, when='+mpi', description='Activate the HDF5 parallel I/O')
+    depends_on('hdf5+fortran+hl~mpi', when='~parallel_io')
+    depends_on('hdf5+fortran+hl+mpi', when='+parallel_io')
+
+    # NETCDF
+    depends_on('netcdf-c~mpi', when='~parallel_io')
+    depends_on('netcdf-c+mpi', when='+parallel_io')
+    depends_on('netcdf-fortran')
+
+    # LIBXC
+    depends_on('libxc@2.0.3:3.0.0', when='@:5.0.99')
+    depends_on('libxc@5.0:', when='@5.0.99:')
 
     build_targets = ['ext-libs', 'yambo','interfaces','ypp']
 
@@ -131,6 +124,9 @@ class Yambo(AutotoolsPackage):
 
     def enable_or_disable_openmp(self, activated):
         return '--enable-open-mp' if activated else '--disable-open-mp'
+
+    def enable_or_disable_parallel_io(self, activated):
+        return '--enable-hdf5-par-io' if activated else '--disable-hdf5-par-io'
 
     def configure_args(self):
         spec = self.spec
@@ -176,6 +172,9 @@ class Yambo(AutotoolsPackage):
         args.extend(self.enable_or_disable('mpi'))
         args.extend(self.enable_or_disable('openmp'))
 
+        # Parallel I/O
+        args.extend(self.enable_or_disable('parallel_io'))
+
         # Linear Algebra
         if 'linalg=parallel' in spec:
             args.extend([
@@ -208,7 +207,7 @@ class Yambo(AutotoolsPackage):
 
         # CUDA
         if '+cuda' in spec:
-            args.append('--enable-cuda=cuda{0},cc{1}'.format(spec['cuda'].version,spec.variants['cc'].value))
+            args.append('--enable-cuda=cuda{0},cc{1}'.format(spec['cuda'].version,spec.variants['cuda_arch'].value))
 
         return args
 
