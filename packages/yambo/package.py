@@ -6,7 +6,7 @@
 from spack import *
 
 
-class Yambo(AutotoolsPackage):
+class Yambo(AutotoolsPackage, CudaPackage):
     """YAMBO is an open-source code released within the GPL licence. 
 
     YAMBO implements Many-Body Perturbation Theory (MBPT) methods 
@@ -48,6 +48,7 @@ class Yambo(AutotoolsPackage):
     variant('mpi', default=True, description='Enable MPI support')
     variant('openmp', default=False, description='Enable OpenMP support')
     depends_on('mpi', when='+mpi')
+    depends_on('openmpi@3', when='+mpi %nvhpc')
 
     # Linear algebra
     variant('linalg', default='none', values=('none', 'parallel', 'slepc'), multi=False,
@@ -67,18 +68,18 @@ class Yambo(AutotoolsPackage):
     depends_on('slepc@:3.7.4', when='@:4.5.3 linalg=slepc')
 
     # GPU acceleration
-    variant('cuda', default=False, description='Enable CUDA support')
-    variant('cuda_arch', default='none', values=('none', '20', '30', '35', '37', '52', '61', '60', '70', '75', '80', '86'),
-            description="GPU's Compute Capability version",  multi=False)
+    #variant('cuda', default=False, description='Enable CUDA support')
+    #variant('cuda_arch', default='none', values=('none', '20', '30', '35', '37', '52', '61', '60', '70', '75', '80', '86'),
+    #        description="GPU's Compute Capability version",  multi=False)
     conflicts('cuda_arch=none', when='+cuda',
-              msg="GPU's Compute Capability version is required when +cuda")
+              msg="CUDA architecture is required when +cuda")
     conflicts('@:4.5.3', when='+cuda',
               msg="CUDA-Fortran available only from version 5.0.0")
     conflicts('%gcc', when='+cuda',
               msg="CUDA-Fortran available only with NV or PGI compilers")
     conflicts('%intel', when='+cuda',
               msg="CUDA-Fortran available only with NV or PGI compilers")
-    depends_on('cuda', when='+cuda')
+    #depends_on('cuda', when='+cuda')
 
     # Other variants
     variant('dp', default=False, description='Enable double precision')
@@ -145,7 +146,7 @@ class Yambo(AutotoolsPackage):
             env['FC']="nvfortran"
             env['F77']="nvfortran"
             env['CC']="nvc"
-            env['CPP']="nvc -E"
+            env['CPP']="cpp -E"
             env['F90SUFFIX']=".f90"
 
         args = [
@@ -207,7 +208,10 @@ class Yambo(AutotoolsPackage):
 
         # CUDA
         if '+cuda' in spec:
-            args.append('--enable-cuda=cuda{0},cc{1}'.format(spec['cuda'].version,spec.variants['cuda_arch'].value))
+            enable_cuda = '--enable-cuda=cuda{0}.{1}'.format(*spec['cuda'].version)
+            for cc in spec.variants['cuda_arch'].value:
+                enable_cuda += ',cc{0}'.format(cc)
+            args.append(enable_cuda)
 
         return args
 
