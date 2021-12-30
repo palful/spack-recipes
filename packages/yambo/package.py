@@ -59,6 +59,7 @@ class Yambo(AutotoolsPackage, CudaPackage):
               msg="SLEPc support for linear algebra available only from yambo@4.3.3")
     depends_on('blas')
     depends_on('lapack')
+    depends_on('netlib-lapack', when='%nvhpc')
     depends_on('scalapack', when='linalg=parallel')
     depends_on('petsc+mpi+double+complex', when='linalg=slepc +mpi+dp')
     depends_on('petsc~mpi~double+complex~superlu-dist', when='linalg=slepc ~mpi~dp')
