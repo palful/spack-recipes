@@ -26,6 +26,8 @@ class Yambo(AutotoolsPackage, CudaPackage):
     url = "https://github.com/yambo-code/yambo/archive/5.0.4.tar.gz"
     git = "git@github.com:yambo-code/yambo-devel.git"
 
+    maintainers = ['nicspalla']
+
     version('develop', branch='develop')
     version('5.0.4', sha256='1841ded51cc31a4293fa79252d7ce893d998acea7ccc836e321c3edba19eae8a')
     version('5.0.3', sha256='7a5a5f3939bdb6438a3f41a3d26fff0ea6f77339e4daf6a5d850cf2a51da4414')
@@ -38,11 +40,11 @@ class Yambo(AutotoolsPackage, CudaPackage):
     version('4.5.0', sha256='c68b2c79acc31b3d48e7edb46e4049c1108d60feee80bf4fcdc4afe4b12b6928')
     version('4.4.1', sha256='2daf80f394a861301a9bbad559aaf58de283ce60395c9875e9f7d7fa57fcf16d')
     version('4.3.3', sha256='790fa1147044c7f33f0e8d336ccb48089b48d5b894c956779f543e0c7e77de19')
-    version('4.2.2', sha256='86b4ebe679387233266aba49948246c85a32b1e6840d024f162962bd0112448c')
-    version('4.2.1', sha256='8ccd0ca75cc32d9266d4a37edd2a7396cf5038f3a68be07c0f0f77d1afc72bdc')
-    version('4.2.0', sha256='9f78c4237ff363ff4e9ea5eeea671b6fff783d9a6078cc31b0b1abeb1f040f4d')
+    #version('4.2.5', sha256='9df63af4c6445434f45b124e0e9d3a20a090d1f0f821bb55fd51ab5a4dccf5ac')
 
-    patch('hdf5.patch', sha256='b9362020b0a29abec535afd7d782b8bb643678fe9215815ca8dc9e4941cb169f')
+    patch('hdf5.patch', sha256='b9362020b0a29abec535afd7d782b8bb643678fe9215815ca8dc9e4941cb169f', when='@4.3:')
+    patch('hdf5_old.patch', sha256='c1ce59d15ab30b33fa474fa58404344254c4203d1762316e178a19cc3a9993b6', when='@:4.2.99')
+    patch('iotk_url.patch', sha256='73d1be69002c785bdd2894a3504da06f440e81f07f7356cd52079f287be6d2b9', when='@:4.5.0')
 
     # MPI + OpenMP parallelism
     variant('mpi', default=True, description='Enable MPI support')
@@ -59,7 +61,7 @@ class Yambo(AutotoolsPackage, CudaPackage):
               msg="SLEPc support for linear algebra available only from yambo@4.3.3")
     depends_on('blas')
     depends_on('lapack')
-    depends_on('netlib-lapack', when='%nvhpc')
+    depends_on('netlib-lapack%nvhpc', when='%nvhpc')
     depends_on('scalapack', when='linalg=parallel')
     depends_on('petsc+mpi+double+complex', when='linalg=slepc +mpi+dp')
     depends_on('petsc~mpi~double+complex~superlu-dist', when='linalg=slepc ~mpi~dp')
@@ -69,9 +71,6 @@ class Yambo(AutotoolsPackage, CudaPackage):
     depends_on('slepc@:3.7.4', when='@:4.5.3 linalg=slepc')
 
     # GPU acceleration
-    #variant('cuda', default=False, description='Enable CUDA support')
-    #variant('cuda_arch', default='none', values=('none', '20', '30', '35', '37', '52', '61', '60', '70', '75', '80', '86'),
-    #        description="GPU's Compute Capability version",  multi=False)
     conflicts('cuda_arch=none', when='+cuda',
               msg="CUDA architecture is required when +cuda")
     conflicts('@:4.5.3', when='+cuda',
@@ -80,7 +79,6 @@ class Yambo(AutotoolsPackage, CudaPackage):
               msg="CUDA-Fortran available only with NV or PGI compilers")
     conflicts('%intel', when='+cuda',
               msg="CUDA-Fortran available only with NV or PGI compilers")
-    #depends_on('cuda', when='+cuda')
 
     # Other variants
     variant('dp', default=False, description='Enable double precision')
@@ -92,7 +90,8 @@ class Yambo(AutotoolsPackage, CudaPackage):
     depends_on('fftw+mpi', when='+mpi')
 
     # HDF5
-    variant('parallel_io', default=False, when='+mpi', description='Activate the HDF5 parallel I/O')
+    variant('parallel_io', default=False, when='@4.4.0: +mpi', description='Activate the HDF5 parallel I/O')
+    depends_on('hdf5+fortran+hl~mpi', when='@:4.4.0')
     depends_on('hdf5+fortran+hl~mpi', when='~parallel_io')
     depends_on('hdf5+fortran+hl+mpi', when='+parallel_io')
 
@@ -175,12 +174,13 @@ class Yambo(AutotoolsPackage, CudaPackage):
         args.extend(self.enable_or_disable('openmp'))
 
         # Parallel I/O
-        args.extend(self.enable_or_disable('parallel_io'))
+        if '@4.4.0:' in spec:
+            args.extend(self.enable_or_disable('parallel_io'))
 
         # Linear Algebra
         if 'linalg=parallel' in spec:
             args.extend([
-                #'--enable-par-linalg',
+                '--enable-par-linalg',
                 '--with-blacs-libs={0}'.format(spec['scalapack'].libs),
                 '--with-scalapack-libs={0}'.format(spec['scalapack'].libs),
             ])
