@@ -7,19 +7,19 @@ from spack import *
 
 
 class Yambo(AutotoolsPackage, CudaPackage):
-    """YAMBO is an open-source code released within the GPL licence. 
+    """YAMBO is an open-source code released within the GPL licence.
 
-    YAMBO implements Many-Body Perturbation Theory (MBPT) methods 
-    (such as GW and BSE) and Time-Dependent Density Functional Theory 
-    (TDDFT), which allows for accurate prediction of fundamental 
-    properties as band gaps of semiconductors, band alignments, defect 
-    quasi-particle energies, optics and out-of-equilibrium properties 
+    YAMBO implements Many-Body Perturbation Theory (MBPT) methods
+    (such as GW and BSE) and Time-Dependent Density Functional Theory
+    (TDDFT), which allows for accurate prediction of fundamental
+    properties as band gaps of semiconductors, band alignments, defect
+    quasi-particle energies, optics and out-of-equilibrium properties
     of materials.
 
-    The code resorts to previously computed electronic structure, 
-    usually at the Density Functional Theory (DFT) level and for this 
-    reason it is interfaced with two of the most used planewave DFT 
-    codes used in scientific community, Quantum ESPRESSO and Abinit.  
+    The code resorts to previously computed electronic structure,
+    usually at the Density Functional Theory (DFT) level and for this
+    reason it is interfaced with two of the most used planewave DFT
+    codes used in scientific community, Quantum ESPRESSO and Abinit.
     """
 
     homepage = "http://www.yambo-code.org/index.php"
@@ -40,7 +40,7 @@ class Yambo(AutotoolsPackage, CudaPackage):
     version('4.5.0', sha256='c68b2c79acc31b3d48e7edb46e4049c1108d60feee80bf4fcdc4afe4b12b6928')
     version('4.4.1', sha256='2daf80f394a861301a9bbad559aaf58de283ce60395c9875e9f7d7fa57fcf16d')
     version('4.3.3', sha256='790fa1147044c7f33f0e8d336ccb48089b48d5b894c956779f543e0c7e77de19')
-    #version('4.2.5', sha256='9df63af4c6445434f45b124e0e9d3a20a090d1f0f821bb55fd51ab5a4dccf5ac')
+    # version('4.2.5', sha256='9df63af4c6445434f45b124e0e9d3a20a090d1f0f821bb55fd51ab5a4dccf5ac')
 
     patch('hdf5.patch', sha256='b9362020b0a29abec535afd7d782b8bb643678fe9215815ca8dc9e4941cb169f', when='@4.3:')
     patch('hdf5_old.patch', sha256='c1ce59d15ab30b33fa474fa58404344254c4203d1762316e178a19cc3a9993b6', when='@:4.2.99')
@@ -54,7 +54,8 @@ class Yambo(AutotoolsPackage, CudaPackage):
 
     # Linear algebra
     variant('linalg', default='none', values=('none', 'parallel', 'slepc'), multi=False,
-            description='Activate additional support for linear algebra: "parallel" uses SCALAPACK and "petsc" is used for diagonalization of BSE')
+            description="""Activate additional support for linear algebra:
+"parallel" uses SCALAPACK and "slepc" is used for diagonalization of BSE""")
     conflicts('linalg=parallel', when='~mpi',
               msg="Parallel linear algebra available only with +mpi")
     conflicts('linalg=slepc', when='@:4.2.2',
@@ -86,8 +87,8 @@ class Yambo(AutotoolsPackage, CudaPackage):
             description='Activate profiling of specific sections')
 
     # FFTW
-    depends_on('fftw~mpi', when='~mpi')
-    depends_on('fftw+mpi', when='+mpi')
+    depends_on('fftw-api@3~mpi', when='~mpi')
+    depends_on('fftw-api@3+mpi', when='+mpi')
 
     # HDF5
     variant('parallel_io', default=False, when='@4.4.0: +mpi', description='Activate the HDF5 parallel I/O')
@@ -104,7 +105,7 @@ class Yambo(AutotoolsPackage, CudaPackage):
     depends_on('libxc@2.0.3:3.0.0', when='@:5.0.99')
     depends_on('libxc@5.0:', when='@5.0.99:')
 
-    build_targets = ['ext-libs', 'yambo','interfaces','ypp']
+    build_targets = ['ext-libs', 'yambo', 'interfaces', 'ypp']
 
     parallel = False
 
@@ -142,19 +143,19 @@ class Yambo(AutotoolsPackage, CudaPackage):
             env['MPICXX'] = "mpicxx"
             env['MPIF77'] = "mpif77"
             env['MPIFC'] = "mpif90"
-            env['FPP']="nvfortran -Mpreprocess -E"
-            env['FC']="nvfortran"
-            env['F77']="nvfortran"
-            env['CC']="nvc"
-            env['CPP']="cpp -E"
-            env['F90SUFFIX']=".f90"
+            env['FPP'] = "nvfortran -Mpreprocess -E"
+            env['FC'] = "nvfortran"
+            env['F77'] = "nvfortran"
+            env['CC'] = "nvc"
+            env['CPP'] = "cpp -E"
+            env['F90SUFFIX'] = ".f90"
 
         args = [
             '--enable-msgs-comps',
             '--disable-keep-objects',
             '--with-editor=none'
         ]
-        
+
         # For versions up to 4.5.3 there are hard-coded paths that make
         # the build process fail if the target prefix is not the
         # configure directory
@@ -186,7 +187,7 @@ class Yambo(AutotoolsPackage, CudaPackage):
             ])
         elif 'linalg=slepc' in spec:
             args.extend([
-                #'--enable-slepc-linalg',
+                '--enable-slepc-linalg',
                 '--with-petsc-path={0}'.format(spec['petsc'].prefix),
                 '--with-slepc-path={0}'.format(spec['slepc'].prefix),
             ])
@@ -219,4 +220,3 @@ class Yambo(AutotoolsPackage, CudaPackage):
     def install(self, spec, prefix):
         # 'install' target is not present
         install_tree('bin', prefix.bin)
-
