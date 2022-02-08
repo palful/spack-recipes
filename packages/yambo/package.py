@@ -133,6 +133,11 @@ class Yambo(AutotoolsPackage, CudaPackage):
     def configure_args(self):
         spec = self.spec
 
+        if 'intel' in spec['mpi'].name:
+            env['MPICC'] = 'mpiicc'
+            env['MPICXX'] = 'mpiicpc'
+            env['MPIF77'] = 'mpiifort'
+            env['MPIFC'] = 'mpiifort'
         if spec['mpi'].name == 'openmpi':
             env['MPICC'] = spec['mpi'].mpicc
             env['MPICXX'] = spec['mpi'].mpicxx
@@ -205,7 +210,7 @@ class Yambo(AutotoolsPackage, CudaPackage):
         ])
 
         # Other dependencies
-        args.append('--with-fft-path={0}'.format(spec['fftw'].prefix))
+        args.append('--with-fft-path={0}'.format(spec['fftw-api'].prefix))
         args.append('--with-libxc-path={0}'.format(spec['libxc'].prefix))
 
         # CUDA
