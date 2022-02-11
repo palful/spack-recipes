@@ -181,9 +181,6 @@ class Yambo(AutotoolsPackage, CudaPackage):
 
         # Linear Algebra
         if 'mkl' in spec:
-            mkllibdir = '{0}/lib/intel64'.format(env['MKLROOT'])
-        
-        if 'mkl' in spec:
             if '+openmp' in spec:
                 mkl = "parallel"
             else:
