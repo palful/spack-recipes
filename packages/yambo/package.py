@@ -179,17 +179,36 @@ class Yambo(AutotoolsPackage, CudaPackage):
         args.extend(self.enable_or_disable('mpi'))
         args.extend(self.enable_or_disable('openmp'))
 
-        # Parallel I/O
-        if '@4.4.0:' in spec:
-            args.extend(self.enable_or_disable('parallel_io'))
-
         # Linear Algebra
-        if 'linalg=parallel' in spec:
+        if 'mkl' in spec:
+            mkllibdir = '{0}/lib/intel64'.format(env['MKLROOT'])
+        
+        if 'mkl' in spec:
+            if '+openmp' in spec:
+                mkl = "parallel"
+            else:
+                mkl = "sequential"
             args.extend([
-                '--enable-par-linalg',
-                '--with-blacs-libs={0}'.format(spec['scalapack'].libs),
-                '--with-scalapack-libs={0}'.format(spec['scalapack'].libs),
+                '--with-blas-libs=-qmkl={0}'.format(mkl),
+                '--with-lapack-libs=-qmkl={0}'.format(mkl),
             ])
+        else:
+            args.extend([
+                '--with-blas-libs="{0}"'.format(spec['blas'].libs),
+                '--with-lapack-libs="{0}"'.format(spec['lapack'].libs),
+            ])
+        if 'linalg=parallel' in spec:
+            args.append('--enable-par-linalg')
+            if 'mkl' in spec and 'intel' in spec['mpi'].name:
+                args.extend([
+                    '--with-blacs-libs=-L{0}/lib/intel64 -lmkl_blacs_intelmpi_lp64'.format(env['MKLROOT']),
+                    '--with-scalapack-libs=-L{0}/lib/intel64 -lmkl_scalapack_lp64'.format(env['MKLROOT']),
+                ])
+            else:
+                args.extend([
+                    '--with-blacs-libs="{0}"'.format(spec['scalapack'].libs),
+                    '--with-scalapack-libs="{0}"'.format(spec['scalapack'].libs),
+                ])
         elif 'linalg=slepc' in spec:
             args.extend([
                 '--enable-slepc-linalg',
@@ -197,10 +216,6 @@ class Yambo(AutotoolsPackage, CudaPackage):
                 '--with-slepc-path={0}'.format(spec['slepc'].prefix),
             ])
 
-        args.extend([
-            '--with-blas-libs={0}'.format(spec['blas'].libs),
-            '--with-lapack-libs={0}'.format(spec['lapack'].libs)
-        ])
 
         # I/O
         args.extend([
@@ -209,8 +224,20 @@ class Yambo(AutotoolsPackage, CudaPackage):
             '--with-hdf5-path={0}'.format(spec['hdf5'].prefix)
         ])
 
+        # Parallel I/O
+        if '@4.4.0:' in spec:
+            args.extend(self.enable_or_disable('parallel_io'))
+
+        # FFT
+        if 'mkl' in spec:
+            if '+openmp' in spec:
+                args.append('--with-fft-libs=-qmkl=parallel')
+            else:
+                args.append('--with-fft-libs=-qmkl=sequential')
+        else:
+            args.append('--with-fft-path={0}'.format(spec['fftw-api'].prefix))
+
         # Other dependencies
-        args.append('--with-fft-path={0}'.format(spec['fftw-api'].prefix))
         args.append('--with-libxc-path={0}'.format(spec['libxc'].prefix))
 
         # CUDA
