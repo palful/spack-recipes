@@ -3,6 +3,7 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+import os
 from spack import *
 
 
@@ -130,30 +131,37 @@ class Yambo(AutotoolsPackage, CudaPackage):
     def enable_or_disable_parallel_io(self, activated):
         return '--enable-hdf5-par-io' if activated else '--disable-hdf5-par-io'
 
+    def setup_build_environment(self, env):
+        spec = self.spec
+        if spec['mpi'].name == 'openmpi':
+            env.set('MPICC', spec['mpi'].mpicc)
+            env.set('MPICXX', spec['mpi'].mpicxx)
+            env.set('MPIF77', spec['mpi'].mpif77)
+            env.set('MPIFC', spec['mpi'].mpifc)
+        if 'intel' in spec['mpi'].name:
+            env.set('MPICC', 'mpiicc')
+            env.set('MPICXX', 'mpiicpc')
+            env.set('MPIF77', 'mpiifort')
+            env.set('MPIFC', 'mpiifort')
+        if '%nvhpc' in spec:
+            env.set('MPICC', "mpicc")
+            env.set('MPICXX', "mpicxx")
+            env.set('MPIF77', "mpif77")
+            env.set('MPIFC', "mpif90")
+            env.set('FPP', "nvfortran -Mpreprocess -E")
+            env.set('FC', "nvfortran")
+            env.set('F77', "nvfortran")
+            env.set('CC', "nvc")
+            env.set('CPP', "cpp -E")
+            env.set('F90SUFFIX', ".f90")
+        if 'mkl' in spec:
+            try:
+                mklroot = os.environ['MKLROOT']
+            except KeyError:
+                env.set('MKLROOT', '{}/mkl/latest/lib/intel64'.format(spec['blas'].prefix))
+
     def configure_args(self):
         spec = self.spec
-
-        if 'intel' in spec['mpi'].name:
-            env['MPICC'] = 'mpiicc'
-            env['MPICXX'] = 'mpiicpc'
-            env['MPIF77'] = 'mpiifort'
-            env['MPIFC'] = 'mpiifort'
-        if spec['mpi'].name == 'openmpi':
-            env['MPICC'] = spec['mpi'].mpicc
-            env['MPICXX'] = spec['mpi'].mpicxx
-            env['MPIF77'] = spec['mpi'].mpif77
-            env['MPIFC'] = spec['mpi'].mpifc
-        if '%nvhpc' in spec:
-            env['MPICC'] = "mpicc"
-            env['MPICXX'] = "mpicxx"
-            env['MPIF77'] = "mpif77"
-            env['MPIFC'] = "mpif90"
-            env['FPP'] = "nvfortran -Mpreprocess -E"
-            env['FC'] = "nvfortran"
-            env['F77'] = "nvfortran"
-            env['CC'] = "nvc"
-            env['CPP'] = "cpp -E"
-            env['F90SUFFIX'] = ".f90"
 
         args = [
             '--enable-msgs-comps',
