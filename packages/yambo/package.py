@@ -199,8 +199,8 @@ class Yambo(AutotoolsPackage, CudaPackage):
             ])
         else:
             args.extend([
-                '--with-blas-libs="{0}"'.format(spec['blas'].libs),
-                '--with-lapack-libs="{0}"'.format(spec['lapack'].libs),
+                '--with-blas-libs={0}'.format(spec['blas'].libs),
+                '--with-lapack-libs={0}'.format(spec['lapack'].libs),
             ])
         if 'linalg=parallel' in spec:
             args.append('--enable-par-linalg')
@@ -211,8 +211,8 @@ class Yambo(AutotoolsPackage, CudaPackage):
                 ])
             else:
                 args.extend([
-                    '--with-blacs-libs="{0}"'.format(spec['scalapack'].libs),
-                    '--with-scalapack-libs="{0}"'.format(spec['scalapack'].libs),
+                    '--with-blacs-libs={0}'.format(spec['scalapack'].libs),
+                    '--with-scalapack-libs={0}'.format(spec['scalapack'].libs),
                 ])
         elif 'linalg=slepc' in spec:
             args.extend([
