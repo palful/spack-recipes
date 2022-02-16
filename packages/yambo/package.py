@@ -43,7 +43,6 @@ class Yambo(AutotoolsPackage, CudaPackage):
     version('4.3.3', sha256='790fa1147044c7f33f0e8d336ccb48089b48d5b894c956779f543e0c7e77de19')
 
     patch('hdf5.patch', sha256='b9362020b0a29abec535afd7d782b8bb643678fe9215815ca8dc9e4941cb169f', when='@4.3:')
-    patch('hdf5_old.patch', sha256='c1ce59d15ab30b33fa474fa58404344254c4203d1762316e178a19cc3a9993b6', when='@:4.2.99')
     patch('iotk_url.patch', sha256='73d1be69002c785bdd2894a3504da06f440e81f07f7356cd52079f287be6d2b9', when='@:4.5.0')
 
     # MPI + OpenMP parallelism
@@ -188,7 +187,7 @@ class Yambo(AutotoolsPackage, CudaPackage):
         args.extend(self.enable_or_disable('openmp'))
 
         # Linear Algebra
-        if 'mkl' in spec:
+        if 'mkl' in spec and ('%intel' in spec or '%oneapi' in spec):
             if '+openmp' in spec:
                 mkl = "parallel"
             else:
@@ -197,6 +196,38 @@ class Yambo(AutotoolsPackage, CudaPackage):
                 '--with-blas-libs=-qmkl={0}'.format(mkl),
                 '--with-lapack-libs=-qmkl={0}'.format(mkl),
             ])
+        if 'mkl' in spec and '%gcc' in spec:
+            if '+openmp' in spec:
+                args.extend([
+                    '--with-blas-libs=-L{0}/lib/intel64 -lmkl_gf_lp64 '
+                    '-lmkl_gnu_thread -lmkl_core -lgomp'.format(env['MKLROOT']),
+                    '--with-lapack-libs=-L{0}/lib/intel64 -lmkl_gf_lp64 '
+                    '-lmkl_gnu_thread -lmkl_core -lgomp'.format(env['MKLROOT']),
+                ])
+            else:
+                args.extend([
+                    '--with-blas-libs=-L{0}/lib/intel64 -lmkl_gf_lp64 '
+                    '-lmkl_sequential -lmkl_core'.format(env['MKLROOT']),
+                    '--with-lapack-libs=-L{0}/lib/intel64 -lmkl_gf_lp64 '
+                    '-lmkl_sequential -lmkl_core'.format(env['MKLROOT']),
+                ])
+        if 'mkl' in spec and '%nvhpc' in spec:
+            if '+openmp' in spec:
+                args.extend([
+                    '--with-blas-libs=-L{0}/lib/intel64 '
+                    '-lmkl_intel_lp64 -lmkl_pgi_thread -lmkl_core '
+                    '-pgf90libs -mp'.format(env['MKLROOT']),
+                    '--with-lapack-libs=-L{0}/lib/intel64 '
+                    '-lmkl_intel_lp64 -lmkl_pgi_thread -lmkl_core '
+                    '-pgf90libs -mp'.format(env['MKLROOT']),
+                ])
+            else:
+                args.extend([
+                    '--with-blas-libs=-L{0}/lib/intel64 -lmkl_intel_lp64 '
+                    '-lmkl_sequential -lmkl_core'.format(env['MKLROOT']),
+                    '--with-lapack-libs=-L{0}/lib/intel64 -lmkl_intel_lp64 '
+                    '-lmkl_sequential -lmkl_core'.format(env['MKLROOT']),
+                ])
         else:
             args.extend([
                 '--with-blas-libs={0}'.format(spec['blas'].libs),
@@ -235,7 +266,7 @@ class Yambo(AutotoolsPackage, CudaPackage):
             args.extend(self.enable_or_disable('parallel_io'))
 
         # FFT
-        if 'mkl' in spec:
+        if 'mkl' in spec and ('%intel' in spec or '%oneapi' in spec):
             if '+openmp' in spec:
                 args.append('--with-fft-libs=-qmkl=parallel')
             else:
