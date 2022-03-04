@@ -106,8 +106,6 @@ class Yambo(AutotoolsPackage, CudaPackage):
 
     build_targets = ['ext-libs', 'yambo', 'interfaces', 'ypp']
 
-    parallel = False
-
     # The configure in the package has the string 'cat config/report'
     # hard-coded, which causes a failure at configure time due to the
     # current working directory in Spack. Fix this by using the absolute
@@ -137,30 +135,23 @@ class Yambo(AutotoolsPackage, CudaPackage):
             env.set('MPIF77', spec['mpi'].mpif77)
             env.set('MPIFC', spec['mpi'].mpifc)
         if 'intel' in spec['mpi'].name:
-            env.set('MPICC', 'mpiicc')
-            env.set('MPICXX', 'mpiicpc')
-            env.set('MPIF77', 'mpiifort')
-            env.set('MPIFC', 'mpiifort')
+            env.set('MPICC', '{0}/mpiicc'.format(spec['mpi'].prefix.mpi.latest.bin))
+            env.set('MPICXX', '{0}/mpiicpc'.format(spec['mpi'].prefix.mpi.latest.bin))
+            env.set('MPIF77', '{0}/mpiifort'.format(spec['mpi'].prefix.mpi.latest.bin))
+            env.set('MPIFC', '{0}/mpiifort'.format(spec['mpi'].prefix.mpi.latest.bin))
         if '%nvhpc' in spec:
-            env.set('MPICC', "mpicc")
-            env.set('MPICXX', "mpicxx")
-            env.set('MPIF77', "mpif77")
-            env.set('MPIFC', "mpif90")
             env.set('FPP', "nvfortran -Mpreprocess -E")
-            env.set('FC', "nvfortran")
-            env.set('F77', "nvfortran")
-            env.set('CC', "nvc")
-            env.set('CPP', "cpp -E")
             env.set('F90SUFFIX', ".f90")
         if '%intel' in spec:
             env.set('FPP', "ifort -E -free -P")
+        if '%oneapi' in spec:
+            env.set('FPP', "ifx -E -free -P")
         if 'mkl' in spec:
             if 'MKLROOT' not in os.environ:
                 env.set('MKLROOT', '{}/mkl/latest'.format(spec['blas'].prefix))
 
     def configure_args(self):
         spec = self.spec
-        print(os.environ['PATH'])
 
         args = [
             '--enable-msgs-comps',
@@ -189,14 +180,20 @@ class Yambo(AutotoolsPackage, CudaPackage):
         # Linear Algebra
         if 'mkl' in spec and ('%intel' in spec or '%oneapi' in spec):
             if '+openmp' in spec:
-                mkl = "parallel"
+                args.extend([
+                    '--with-blas-libs=-L{0}/lib/intel64 -lmkl_intel_lp64 '
+                    '-lmkl_intel_thread -lmkl_core -liomp5'.format(env['MKLROOT']),
+                    '--with-lapack-libs=-L{0}/lib/intel64 -lmkl_intel_lp64 '
+                    '-lmkl_intel_thread -lmkl_core -liomp5'.format(env['MKLROOT']),
+                ])
             else:
-                mkl = "sequential"
-            args.extend([
-                '--with-blas-libs=-qmkl={0}'.format(mkl),
-                '--with-lapack-libs=-qmkl={0}'.format(mkl),
-            ])
-        if 'mkl' in spec and '%gcc' in spec:
+                args.extend([
+                    '--with-blas-libs=-L{0}/lib/intel64 -lmkl_intel_lp64 '
+                    '-lmkl_sequential -lmkl_core'.format(env['MKLROOT']),
+                    '--with-lapack-libs=-L{0}/lib/intel64 -lmkl_intel_lp64 '
+                    '-lmkl_sequential -lmkl_core'.format(env['MKLROOT']),
+                ])
+        elif 'mkl' in spec and '%gcc' in spec:
             if '+openmp' in spec:
                 args.extend([
                     '--with-blas-libs=-L{0}/lib/intel64 -lmkl_gf_lp64 '
@@ -211,15 +208,13 @@ class Yambo(AutotoolsPackage, CudaPackage):
                     '--with-lapack-libs=-L{0}/lib/intel64 -lmkl_gf_lp64 '
                     '-lmkl_sequential -lmkl_core'.format(env['MKLROOT']),
                 ])
-        if 'mkl' in spec and '%nvhpc' in spec:
+        elif 'mkl' in spec and '%nvhpc' in spec:
             if '+openmp' in spec:
                 args.extend([
-                    '--with-blas-libs=-L{0}/lib/intel64 '
-                    '-lmkl_intel_lp64 -lmkl_pgi_thread -lmkl_core '
-                    '-pgf90libs -mp'.format(env['MKLROOT']),
-                    '--with-lapack-libs=-L{0}/lib/intel64 '
-                    '-lmkl_intel_lp64 -lmkl_pgi_thread -lmkl_core '
-                    '-pgf90libs -mp'.format(env['MKLROOT']),
+                    '--with-blas-libs=-L{0}/lib/intel64 -lmkl_intel_lp64 '
+                    '-lmkl_pgi_thread -lmkl_core -pgf90libs -mp'.format(env['MKLROOT']),
+                    '--with-lapack-libs=-L{0}/lib/intel64 -lmkl_intel_lp64 '
+                    '-lmkl_pgi_thread -lmkl_core -pgf90libs -mp'.format(env['MKLROOT']),
                 ])
             else:
                 args.extend([
