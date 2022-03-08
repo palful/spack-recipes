@@ -105,6 +105,7 @@ class Yambo(AutotoolsPackage, CudaPackage):
     depends_on('libxc@5.0:', when='@5.0.99:')
 
     build_targets = ['ext-libs', 'yambo', 'interfaces', 'ypp']
+    parallel = False
 
     # The configure in the package has the string 'cat config/report'
     # hard-coded, which causes a failure at configure time due to the
