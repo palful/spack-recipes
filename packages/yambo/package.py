@@ -25,11 +25,13 @@ class Yambo(AutotoolsPackage, CudaPackage):
 
     homepage = "http://www.yambo-code.org/index.php"
     url = "https://github.com/yambo-code/yambo/archive/5.0.4.tar.gz"
-    git = "git@github.com:yambo-code/yambo-devel.git"
+    # git = "git@github.com:yambo-code/yambo-devel.git"
+    git = "https://github.com/yambo-code/yambo-devel.git"
 
     maintainers = ['nicspalla']
 
-    version('develop', branch='develop')
+    version('develop', branch='develop') 
+    version('5.1.0', branch='bug-fixes')
     version('5.0.4', sha256='1841ded51cc31a4293fa79252d7ce893d998acea7ccc836e321c3edba19eae8a')
     version('5.0.3', sha256='7a5a5f3939bdb6438a3f41a3d26fff0ea6f77339e4daf6a5d850cf2a51da4414')
     version('5.0.2', sha256='a2cc0f880dd915b47efa0d5dd88cb94edffbebaff37a252183efb9e23dbd3fab')
@@ -44,6 +46,7 @@ class Yambo(AutotoolsPackage, CudaPackage):
 
     patch('hdf5.patch', sha256='b9362020b0a29abec535afd7d782b8bb643678fe9215815ca8dc9e4941cb169f', when='@4.3:')
     patch('iotk_url.patch', sha256='73d1be69002c785bdd2894a3504da06f440e81f07f7356cd52079f287be6d2b9', when='@:4.5.0')
+    patch('yambolib.patch', sha256='e3dcb3df39e2c70ebd57ded322d4ddbc1e23bf3b521541d29d4ea0377c475059', when='@5.1.0')
 
     # MPI + OpenMP parallelism
     variant('mpi', default=True, description='Enable MPI support')
@@ -84,6 +87,10 @@ class Yambo(AutotoolsPackage, CudaPackage):
     variant('dp', default=False, description='Enable double precision')
     variant('profile', values=any_combination_of('time', 'memory'),
             description='Activate profiling of specific sections')
+    variant('yambopy', default=False, description='Install Yambopy package')
+    depends_on('py-yambopy', when='+yambopy')
+    variant('ph', default=False, description='Compile PH executables')
+    variant('rt', default=False, description='Compile RT executables')
 
     # FFTW
     depends_on('fftw-api@3~mpi', when='~mpi')
@@ -94,19 +101,30 @@ class Yambo(AutotoolsPackage, CudaPackage):
     depends_on('hdf5+fortran+hl~mpi', when='@:4.4.0')
     depends_on('hdf5+fortran+hl~mpi', when='~parallel_io')
     depends_on('hdf5+fortran+hl+mpi', when='+parallel_io')
+    depends_on('hdf5+fortran+hl~mpi', when='~mpi')
 
     # NETCDF
     depends_on('netcdf-c~mpi', when='~parallel_io')
     depends_on('netcdf-c+mpi', when='+parallel_io')
+    depends_on('netcdf-c~mpi', when='~mpi')
     depends_on('netcdf-fortran')
 
     # LIBXC
     depends_on('libxc@2.0.3:3.0.0', when='@:5.0.99')
     depends_on('libxc@5.0:', when='@5.0.99:')
 
-    build_targets = ['ext-libs', 'yambo', 'interfaces', 'ypp']
     parallel = False
 
+    @property
+    def build_targets(self):
+        spec = self.spec
+        bt = ['ext-libs', 'yambo', 'p2y', 'ypp']
+        if '+ph' in spec:
+            bt += ['yambo_ph', 'ypp_ph']
+        if '+rt' in spec:
+            bt += ['yambo_rt', 'ypp_rt']
+        return bt
+        
     # The configure in the package has the string 'cat config/report'
     # hard-coded, which causes a failure at configure time due to the
     # current working directory in Spack. Fix this by using the absolute
