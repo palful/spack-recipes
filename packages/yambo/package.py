@@ -25,13 +25,11 @@ class Yambo(AutotoolsPackage, CudaPackage):
 
     homepage = "http://www.yambo-code.org/index.php"
     url = "https://github.com/yambo-code/yambo/archive/5.0.4.tar.gz"
-    # git = "git@github.com:yambo-code/yambo-devel.git"
-    git = "https://github.com/yambo-code/yambo-devel.git"
+    git = "https://github.com/yambo-code/yambo.git"
 
     maintainers = ['nicspalla']
 
-    version('develop', branch='develop') 
-    version('5.1.0', branch='bug-fixes')
+    version('5.1.0', branch='5.1')
     version('5.0.4', sha256='1841ded51cc31a4293fa79252d7ce893d998acea7ccc836e321c3edba19eae8a')
     version('5.0.3', sha256='7a5a5f3939bdb6438a3f41a3d26fff0ea6f77339e4daf6a5d850cf2a51da4414')
     version('5.0.2', sha256='a2cc0f880dd915b47efa0d5dd88cb94edffbebaff37a252183efb9e23dbd3fab')
