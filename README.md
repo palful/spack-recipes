@@ -54,10 +54,10 @@ git clone https://github.com/nicspalla/my-repo.git $HOME/my-repo
 git clone https://github.com/spack/spack.git $HOME/spack
 cd $HOME/spack
 git checkout releases/v0.17 
-. ~/spack/share/spack/setup-env.sh
-printf "repos:\n  - $HOME/my-repo\n  - $HOME/spack/var/spack/repos/builtin\n" > $HOME/spack/etc/spack/defaults/repos.yaml \
+. $HOME/spack/share/spack/setup-env.sh 
 spack external find
 spack install gcc@11.2.0 && spack compiler add $(spack location -i gcc@11.2.0)
+printf "repos:\n  - $HOME/my-repo\n" > $HOME/.spack/repos.yaml
 spack install yambo@5.1.0%gcc@11.2.0 +mpi +openmp +ph +rt profile=time,memory linalg=slepc
 ```
 
