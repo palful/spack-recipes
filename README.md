@@ -48,15 +48,28 @@ spack info yambo
 ```
 This command displays the list of the supported versions of Yambo and the list of variants available.
 
-Here an example on how to use them:
+Here a list of commands that will lead to a good installation of Yambo starting from the installation of Spack:
 ```
-spack install yambo@5.0.4%gcc@11.2.0 +mpi +openmp linalg=parallel profile=memory,time ^intel-mkl ^hdf5@1.12.0
+git clone https://github.com/nicspalla/my-repo.git $HOME/my-repo
+git clone https://github.com/spack/spack.git $HOME/spack
+cd $HOME/spack
+git checkout releases/v0.17 
+. $HOME/spack/share/spack/setup-env.sh 
+spack external find
+spack install gcc@11.2.0 && spack compiler add $(spack location -i gcc@11.2.0)
+printf "repos:\n  - $HOME/my-repo\n" > $HOME/.spack/repos.yaml
+spack install yambo@5.1.0%gcc@11.2.0 +mpi +openmp +ph +rt profile=time,memory linalg=slepc
 ```
-With this command you are asking spack to install Yambo at v5.0.4 using GCC compiler at v11.2.0, enabling both MPI and OpenMP parallelization, enabling parallel (ScaLAPACK) linear algebra and the profiling for memory and time. In addition you are specifing to use Intel-MKL library for lapack, HDF5 at v1.12.0.
+
+Now you can load the Yambo package and check if it works:
+```
+spack load yambo
+yambo -h
+```
 
 ### Installing on MacOS
 
 For MacOS users it is suggested to install Yambo with the GCC compiler, but using CMake compiled with the Clang compiler:
 ```
-spack install yambo@5.0.4%gcc@11.2.0 +mpi +openmp profile=memory,time ^cmake%apple-clang
+spack install yambo@5.1.0%gcc@11.2.0 +mpi +openmp profile=memory,time ^cmake%apple-clang
 ```
