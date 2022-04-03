@@ -116,7 +116,8 @@ class Yambo(AutotoolsPackage, CudaPackage):
     @property
     def build_targets(self):
         spec = self.spec
-        bt = ['ext-libs', 'yambo', 'p2y', 'ypp']
+        # bt = ['ext-libs', 'yambo', 'p2y', 'ypp']
+        bt = ['core']
         if '+ph' in spec:
             bt += ['yambo_ph', 'ypp_ph']
         if '+rt' in spec:
