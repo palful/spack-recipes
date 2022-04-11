@@ -87,8 +87,10 @@ class Yambo(AutotoolsPackage, CudaPackage):
             description='Activate profiling of specific sections')
     variant('yambopy', default=False, description='Install Yambopy package')
     depends_on('py-yambopy', when='+yambopy')
-    variant('ph', default=False, description='Compile PH executables')
-    variant('rt', default=False, description='Compile RT executables')
+    variant('ph', default=False, description='Compile Electron-phonon coupling project executables: yambo_ph ypp_ph')
+    variant('rt', default=False, description='Compile Real-time dynamics project executables: yambo_rt ypp_rt')
+    variant('sc', default=False, description='Compile Self-consistent (COHSEX, HF, DFT) project executables: yambo_sc ypp_sc')
+    # variant('nl', default=False, description='Compile Non-linear optics project executables: yambo_nl ypp_nl')
 
     # FFTW
     depends_on('fftw-api@3~mpi', when='~mpi')
@@ -116,12 +118,15 @@ class Yambo(AutotoolsPackage, CudaPackage):
     @property
     def build_targets(self):
         spec = self.spec
-        # bt = ['ext-libs', 'yambo', 'p2y', 'ypp']
-        bt = ['core']
+        bt = ['ext-libs', 'core']
         if '+ph' in spec:
-            bt += ['yambo_ph', 'ypp_ph']
+            bt.append('ph-project')
         if '+rt' in spec:
-            bt += ['yambo_rt', 'ypp_rt']
+            bt.append('rt-project')
+        if '+sc' in spec:
+            bt.append('sc-project')
+        # if '+nl' in spec:
+        #     bt.append('nl-project')
         return bt
         
     # The configure in the package has the string 'cat config/report'
