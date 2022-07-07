@@ -58,7 +58,7 @@ git checkout releases/v0.17
 spack external find
 spack install gcc@11.2.0 && spack compiler add $(spack location -i gcc@11.2.0)
 printf "repos:\n  - $HOME/my-repo\n" > $HOME/.spack/repos.yaml
-spack install yambo@5.1.0%gcc@11.2.0 +mpi +openmp +ph +rt profile=time,memory linalg=slepc
+spack install yambo %gcc@11.2.0 +mpi +openmp +ph +rt profile=time,memory linalg=slepc
 ```
 
 Now you can load the Yambo package and check if it works:
