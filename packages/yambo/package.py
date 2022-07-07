@@ -29,7 +29,10 @@ class Yambo(AutotoolsPackage, CudaPackage):
 
     maintainers = ['nicspalla']
 
-    version('5.1.0', branch='5.1')
+    # version('develop', branch='develop', git="https://github.com/yambo-code/yambo-devel")
+    version('develop', branch='bug-fixes', git="https://github.com/yambo-code/yambo-devel")
+    version('5.1rc1', branch='5.1')
+    # version('5.1.0', sha256='ce8d4af0f29e996f797a5823ee70b559dc8cc6ed5cc59eadb9a0abbe20ebf04f')
     version('5.0.4', sha256='1841ded51cc31a4293fa79252d7ce893d998acea7ccc836e321c3edba19eae8a')
     version('5.0.3', sha256='7a5a5f3939bdb6438a3f41a3d26fff0ea6f77339e4daf6a5d850cf2a51da4414')
     version('5.0.2', sha256='a2cc0f880dd915b47efa0d5dd88cb94edffbebaff37a252183efb9e23dbd3fab')
@@ -42,9 +45,11 @@ class Yambo(AutotoolsPackage, CudaPackage):
     version('4.4.1', sha256='2daf80f394a861301a9bbad559aaf58de283ce60395c9875e9f7d7fa57fcf16d')
     version('4.3.3', sha256='790fa1147044c7f33f0e8d336ccb48089b48d5b894c956779f543e0c7e77de19')
 
-    patch('hdf5.patch', sha256='b9362020b0a29abec535afd7d782b8bb643678fe9215815ca8dc9e4941cb169f', when='@4.3:')
+    patch('hdf5.patch', sha256='b9362020b0a29abec535afd7d782b8bb643678fe9215815ca8dc9e4941cb169f', when='@4.3:5.0.99')
+    # patch('v510.patch', sha256='fddc5bdd308c409032bd6e1b8bf1840c8ba87d6b507348faddd34d2999cf45ee', when='@5.1.0')
     patch('iotk_url.patch', sha256='73d1be69002c785bdd2894a3504da06f440e81f07f7356cd52079f287be6d2b9', when='@:4.5.0')
-    patch('yambolib.patch', sha256='e3dcb3df39e2c70ebd57ded322d4ddbc1e23bf3b521541d29d4ea0377c475059', when='@5.1.0')
+    # patch('yambolib.patch', sha256='e3dcb3df39e2c70ebd57ded322d4ddbc1e23bf3b521541d29d4ea0377c475059', when='@5.1.0')
+    patch('v1.patch', sha256='4d491c1781dad1f37c31b8a3952af9a72af0496d2b7973f072a474215aa5242f', when='@5.1rc1')
 
     # MPI + OpenMP parallelism
     variant('mpi', default=True, description='Enable MPI support')
@@ -90,7 +95,7 @@ class Yambo(AutotoolsPackage, CudaPackage):
     variant('ph', default=False, description='Compile Electron-phonon coupling project executables: yambo_ph ypp_ph')
     variant('rt', default=False, description='Compile Real-time dynamics project executables: yambo_rt ypp_rt')
     variant('sc', default=False, description='Compile Self-consistent (COHSEX, HF, DFT) project executables: yambo_sc ypp_sc')
-    # variant('nl', default=False, description='Compile Non-linear optics project executables: yambo_nl ypp_nl')
+    variant('nl', default=False, description='Compile Non-linear optics project executables: yambo_nl ypp_nl')
 
     # FFTW
     depends_on('fftw-api@3~mpi', when='~mpi')
@@ -118,15 +123,15 @@ class Yambo(AutotoolsPackage, CudaPackage):
     @property
     def build_targets(self):
         spec = self.spec
-        bt = ['ext-libs', 'core']
+        bt = ['core']
         if '+ph' in spec:
             bt.append('ph-project')
         if '+rt' in spec:
             bt.append('rt-project')
         if '+sc' in spec:
             bt.append('sc-project')
-        # if '+nl' in spec:
-        #     bt.append('nl-project')
+        if '+nl' in spec:
+            bt.append('nl-project')
         return bt
         
     # The configure in the package has the string 'cat config/report'
@@ -136,7 +141,7 @@ class Yambo(AutotoolsPackage, CudaPackage):
     @run_before('configure')
     def filter_configure(self):
         report_abspath = join_path(self.build_directory, 'config', 'report')
-        filter_file('config/report', report_abspath, 'configure')
+        filter_file('cat config/report', 'cat '+report_abspath, 'configure')
 
     def enable_or_disable_time(self, activated):
         return '--enable-time-profile' if activated else '--disable-time-profile'
@@ -167,6 +172,10 @@ class Yambo(AutotoolsPackage, CudaPackage):
             env.set('F90SUFFIX', ".f90")
         if '%intel' in spec:
             env.set('FPP', "ifort -E -free -P")
+            env.set('FC', "ifort")
+            env.set('CC', "icc")
+            env.set('CXX', "icpc")
+            env.set('CPP', "icc -E -ansi")
         if '%oneapi' in spec:
             env.set('FPP', "ifx -E -free -P")
         if 'mkl' in spec:
@@ -250,6 +259,8 @@ class Yambo(AutotoolsPackage, CudaPackage):
             args.extend([
                 '--with-blas-libs={0}'.format(spec['blas'].libs),
                 '--with-lapack-libs={0}'.format(spec['lapack'].libs),
+                # '--with-blas-libs="{0} {1}"'.format(spec['blas'].libs.search_flags, spec['blas'].libs.link_flags),
+                # '--with-lapack-libs="{0} {1}"'.format(spec['lapack'].libs.search_flags, spec['lapack'].libs.link_flags),
             ])
         if 'linalg=parallel' in spec:
             args.append('--enable-par-linalg')
