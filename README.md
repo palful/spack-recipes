@@ -53,12 +53,12 @@ Here a list of commands that will lead to a good installation of Yambo starting 
 git clone https://github.com/nicspalla/my-repo.git $HOME/my-repo
 git clone https://github.com/spack/spack.git $HOME/spack
 cd $HOME/spack
-git checkout releases/v0.17 
+git checkout releases/v0.18
 . $HOME/spack/share/spack/setup-env.sh 
 spack external find
 spack install gcc@11.2.0 && spack compiler add $(spack location -i gcc@11.2.0)
 printf "repos:\n  - $HOME/my-repo\n" > $HOME/.spack/repos.yaml
-spack install yambo %gcc@11.2.0 +mpi +openmp +ph +rt profile=time,memory linalg=slepc
+spack install yambo %gcc@11.2.0 +mpi +openmp profile=time,memory
 ```
 
 Now you can load the Yambo package and check if it works:
