@@ -46,9 +46,9 @@ class Yambo(AutotoolsPackage, CudaPackage):
     version('4.3.3', sha256='790fa1147044c7f33f0e8d336ccb48089b48d5b894c956779f543e0c7e77de19')
 
     patch('hdf5.patch', sha256='b9362020b0a29abec535afd7d782b8bb643678fe9215815ca8dc9e4941cb169f', when='@4.3:5.0.99')
-    # patch('v510.patch', sha256='fddc5bdd308c409032bd6e1b8bf1840c8ba87d6b507348faddd34d2999cf45ee', when='@5.1.0')
+    patch('hdf5_v51.patch', sha256='326d7d655224e16ccf352b9c4c8340f5b6b98d48e275f60756e5b6274417b487', when='@5.1rc1:')
+    patch('s_psi.patch', sha256='50c97b53701ed58b8bd4c0d53bfefd4e0122df32e6224aad3ee39f7714a229b1', when='@5.1rc1: %gcc@12.0.0:')
     patch('iotk_url.patch', sha256='73d1be69002c785bdd2894a3504da06f440e81f07f7356cd52079f287be6d2b9', when='@:4.5.0')
-    # patch('yambolib.patch', sha256='e3dcb3df39e2c70ebd57ded322d4ddbc1e23bf3b521541d29d4ea0377c475059', when='@5.1.0')
     patch('v1.patch', sha256='4d491c1781dad1f37c31b8a3952af9a72af0496d2b7973f072a474215aa5242f', when='@5.1rc1')
 
     # MPI + OpenMP parallelism
