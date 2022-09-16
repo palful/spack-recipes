@@ -31,7 +31,7 @@ class Yambo(AutotoolsPackage, CudaPackage):
 
     # version('develop', branch='develop', git="https://github.com/yambo-code/yambo-devel")
     version('develop', branch='bug-fixes', git="https://github.com/yambo-code/yambo-devel")
-    version('5.1rc1', branch='5.1')
+    version('5.1.1', sha256='c85036ca60507e627c47b6c6aee8241830349e88110e1ce9132ef03ab2c4e9f6')
     # version('5.1.0', sha256='ce8d4af0f29e996f797a5823ee70b559dc8cc6ed5cc59eadb9a0abbe20ebf04f')
     version('5.0.4', sha256='1841ded51cc31a4293fa79252d7ce893d998acea7ccc836e321c3edba19eae8a')
     version('5.0.3', sha256='7a5a5f3939bdb6438a3f41a3d26fff0ea6f77339e4daf6a5d850cf2a51da4414')
@@ -46,10 +46,10 @@ class Yambo(AutotoolsPackage, CudaPackage):
     version('4.3.3', sha256='790fa1147044c7f33f0e8d336ccb48089b48d5b894c956779f543e0c7e77de19')
 
     patch('hdf5.patch', sha256='b9362020b0a29abec535afd7d782b8bb643678fe9215815ca8dc9e4941cb169f', when='@4.3:5.0.99')
-    patch('hdf5_v51.patch', sha256='326d7d655224e16ccf352b9c4c8340f5b6b98d48e275f60756e5b6274417b487', when='@5.1rc1:')
-    patch('s_psi.patch', sha256='50c97b53701ed58b8bd4c0d53bfefd4e0122df32e6224aad3ee39f7714a229b1', when='@5.1rc1: %gcc@12.0.0:')
+    patch('hdf5_v51.patch', sha256='326d7d655224e16ccf352b9c4c8340f5b6b98d48e275f60756e5b6274417b487', when='@5.1.1:')
+    patch('s_psi.patch', sha256='981a0783a9a2c21a89faa358eaf277213837ed712c936152842f8cf7620f52cd', when='%gcc@12.0.0:')
     patch('iotk_url.patch', sha256='73d1be69002c785bdd2894a3504da06f440e81f07f7356cd52079f287be6d2b9', when='@:4.5.0')
-    patch('v1.patch', sha256='4d491c1781dad1f37c31b8a3952af9a72af0496d2b7973f072a474215aa5242f', when='@5.1rc1')
+    patch('v1.patch', sha256='4d491c1781dad1f37c31b8a3952af9a72af0496d2b7973f072a474215aa5242f', when='@5.1.1')
 
     # MPI + OpenMP parallelism
     variant('mpi', default=True, description='Enable MPI support')
@@ -191,11 +191,10 @@ class Yambo(AutotoolsPackage, CudaPackage):
             '--with-editor=none'
         ]
 
-        # For versions up to 4.5.3 there are hard-coded paths that make
-        # the build process fail if the target prefix is not the
-        # configure directory
+        # There are hard-coded paths that make the build process fail if the
+        # target prefix is not the configure directory
+        args.append('--prefix={0}'.format(self.stage.source_path))
         if '@:4.5.3' in spec:
-            args.append('--prefix={0}'.format(self.stage.source_path))
             if '%gcc@9.0.0:' in spec:
                 args.append('FCFLAGS=-fallow-argument-mismatch')
 
