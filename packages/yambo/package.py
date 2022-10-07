@@ -32,7 +32,6 @@ class Yambo(AutotoolsPackage, CudaPackage):
     # version('develop', branch='develop', git="https://github.com/yambo-code/yambo-devel")
     version('develop', branch='bug-fixes', git="https://github.com/yambo-code/yambo-devel")
     version('5.1.1', sha256='c85036ca60507e627c47b6c6aee8241830349e88110e1ce9132ef03ab2c4e9f6')
-    # version('5.1.0', sha256='ce8d4af0f29e996f797a5823ee70b559dc8cc6ed5cc59eadb9a0abbe20ebf04f')
     version('5.0.4', sha256='1841ded51cc31a4293fa79252d7ce893d998acea7ccc836e321c3edba19eae8a')
     version('5.0.3', sha256='7a5a5f3939bdb6438a3f41a3d26fff0ea6f77339e4daf6a5d850cf2a51da4414')
     version('5.0.2', sha256='a2cc0f880dd915b47efa0d5dd88cb94edffbebaff37a252183efb9e23dbd3fab')
@@ -67,12 +66,12 @@ class Yambo(AutotoolsPackage, CudaPackage):
     depends_on('lapack')
     depends_on('netlib-lapack%nvhpc', when='%nvhpc')
     depends_on('scalapack', when='linalg=parallel')
-    depends_on('petsc+mpi+double+complex~hypre', when='linalg=slepc +mpi+dp')
-    depends_on('petsc~mpi~double+complex~superlu-dist~hypre', when='linalg=slepc ~mpi~dp')
-    depends_on('petsc~mpi+double+complex~hypre', when='linalg=slepc ~mpi+dp')
-    depends_on('petsc+mpi~double+complex~superlu-dist~hypre', when='linalg=slepc +mpi~dp')
-    depends_on('slepc', when='linalg=slepc')
-    depends_on('slepc@:3.7.4', when='@:4.5.3 linalg=slepc')
+    depends_on('petsc+mpi+double+complex~hypre~metis', when='linalg=slepc +mpi+dp')
+    depends_on('petsc~mpi~double+complex~superlu-dist~hypre~metis', when='linalg=slepc ~mpi~dp')
+    depends_on('petsc~mpi+double+complex~hypre~metis', when='linalg=slepc ~mpi+dp')
+    depends_on('petsc+mpi~double+complex~superlu-dist~hypre~metis', when='linalg=slepc +mpi~dp')
+    depends_on('slepc~arpack', when='linalg=slepc')
+    depends_on('slepc~arpack@:3.7.4', when='@:4.5.3 linalg=slepc')
 
     # GPU acceleration
     conflicts('cuda_arch=none', when='+cuda',
