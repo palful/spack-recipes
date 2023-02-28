@@ -54,10 +54,10 @@ class Yambo(AutotoolsPackage, CudaPackage):
     variant('mpi', default=True, description='Enable MPI support')
     variant('openmp', default=False, description='Enable OpenMP support')
     depends_on('mpi', when='+mpi')
-    depends_on('openmpi@3', when='+mpi %nvhpc')
+    #depends_on('openmpi@3:', when='+mpi %nvhpc')
 
     # Linear algebra
-    variant('linalg', default='none', values=('none', 'parallel', 'slepc'), multi=False,
+    variant('linalg', default='none', values=('none', 'parallel', 'slepc'), multi=True,
             description="""Activate additional support for linear algebra:
 "parallel" uses SCALAPACK and "slepc" is used for diagonalization of BSE""")
     conflicts('linalg=parallel', when='~mpi',
@@ -274,7 +274,7 @@ class Yambo(AutotoolsPackage, CudaPackage):
                     '--with-blacs-libs={0}'.format(spec['scalapack'].libs),
                     '--with-scalapack-libs={0}'.format(spec['scalapack'].libs),
                 ])
-        elif 'linalg=slepc' in spec:
+        if 'linalg=slepc' in spec:
             args.extend([
                 '--enable-slepc-linalg',
                 '--with-petsc-path={0}'.format(spec['petsc'].prefix),
