@@ -1,0 +1,30 @@
+--- a/configure
++++ b/configure
+@@ -12345,7 +12345,7 @@
+ #include <petsc/finclude/petscsys.h>
+ #include <petsc/finclude/petscvec.h>
+ #include <petsc/finclude/petscmat.h>
+-#include <petsc/finclude/petscvec.h90>
++#include <petsc/finclude/petscvec.h>
+       end
+ _ACEOF
+ if ac_fn_fc_try_compile "$LINENO"; then :
+@@ -13198,18 +13198,8 @@
+ $as_echo_n "checking for HDF5 using h5pfc/h5fc system compilers... " >&6; } ;
+     #
+     h5pfc="none"
+-    if test -e $with_hdf5_path/bin/h5pfc; then
+-       h5pfc=$with_hdf5_path/bin/h5pfc;
+-     elif command -v h5pfc > /dev/null; then
+-       h5pfc=$(command -v h5pfc)
+-    fi
+     #
+     h5fc="none"
+-    if test -e $with_hdf5_path/bin/h5fc ; then
+-       h5fc=$with_hdf5_path/bin/h5fc;
+-    elif command -v h5fc > /dev/null; then
+-       h5fc=$(command -v h5fc)
+-    fi
+     #
+     if test -e $h5pfc; then
+        try_HDF5_LIBS=`$h5pfc -show | awk -F'-L' '{$1=""; for (i=2; i<=NF;i++) $i="-L"$i; print $0}'`

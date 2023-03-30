@@ -7,7 +7,7 @@ import os
 from spack import *
 
 
-class Yambo(AutotoolsPackage, CudaPackage):
+class Yambo(AutotoolsPackage):
     """YAMBO is an open-source code released within the GPL licence.
 
     YAMBO implements Many-Body Perturbation Theory (MBPT) methods
@@ -24,13 +24,14 @@ class Yambo(AutotoolsPackage, CudaPackage):
     """
 
     homepage = "http://www.yambo-code.org/index.php"
-    url = "https://github.com/yambo-code/yambo/archive/5.0.4.tar.gz"
+    url = "https://github.com/yambo-code/yambo/archive/5.1.1.tar.gz"
     git = "https://github.com/yambo-code/yambo.git"
 
     maintainers = ['nicspalla']
 
-    # version('develop', branch='develop', git="https://github.com/yambo-code/yambo-devel")
-    version('develop', branch='bug-fixes', git="https://github.com/yambo-code/yambo-devel")
+    version('develop', branch='develop', git="https://github.com/yambo-code/yambo-devel")
+    version('bug-fixes', branch='bug-fixes', git="https://github.com/yambo-code/yambo-devel")
+    version('devel-gpu', branch='tech/devel-gpu', git="https://github.com/yambo-code/yambo-devel")
     version('5.1.1', sha256='c85036ca60507e627c47b6c6aee8241830349e88110e1ce9132ef03ab2c4e9f6')
     version('5.0.4', sha256='1841ded51cc31a4293fa79252d7ce893d998acea7ccc836e321c3edba19eae8a')
     version('5.0.3', sha256='7a5a5f3939bdb6438a3f41a3d26fff0ea6f77339e4daf6a5d850cf2a51da4414')
@@ -45,16 +46,19 @@ class Yambo(AutotoolsPackage, CudaPackage):
     version('4.3.3', sha256='790fa1147044c7f33f0e8d336ccb48089b48d5b894c956779f543e0c7e77de19')
 
     patch('hdf5.patch', sha256='b9362020b0a29abec535afd7d782b8bb643678fe9215815ca8dc9e4941cb169f', when='@4.3:5.0.99')
-    patch('hdf5_v51.patch', sha256='326d7d655224e16ccf352b9c4c8340f5b6b98d48e275f60756e5b6274417b487', when='@5.1.1:')
+    patch('configure_lib_check.patch', sha256='5061e98eb4763930cdd3dcb4a4c80f288a801ee492ad925091b7d4bfb5cac69e', when='@5.1.1:')
+    # patch('hdf5_check.patch', sha256='aae11657736448116cd13cdf1d228085213220733b6c0b42dc6246d0b20456e4', when='@5.1.1:')
+    # patch('petsc.patch', sha256='90328274cbdc2a8155bb59af344bbcb2dff0a69bac6b58da54d1194bd3ff50fe', when='@5.1.1:')
     patch('s_psi.patch', sha256='981a0783a9a2c21a89faa358eaf277213837ed712c936152842f8cf7620f52cd', when='%gcc@12.0.0:')
     patch('iotk_url.patch', sha256='73d1be69002c785bdd2894a3504da06f440e81f07f7356cd52079f287be6d2b9', when='@:4.5.0')
     patch('v1.patch', sha256='4d491c1781dad1f37c31b8a3952af9a72af0496d2b7973f072a474215aa5242f', when='@5.1.1')
+    patch('archive_makefile.patch', sha256='d6761e64713dcc11f745c860cdddcd55911d61065bbea8e19e0a3aee23cb818e', when='@5.1.1')
+    patch('iotk_makefile.patch', sha256='ae10dfea8fb1a657a016844687c8151f558c152bc9cc059895ed46b3f9fd3ec6', when='@5.1.1')
 
     # MPI + OpenMP parallelism
     variant('mpi', default=True, description='Enable MPI support')
     variant('openmp', default=False, description='Enable OpenMP support')
     depends_on('mpi', when='+mpi')
-    #depends_on('openmpi@3:', when='+mpi %nvhpc')
 
     # Linear algebra
     variant('linalg', default='none', values=('none', 'parallel', 'slepc'), multi=True,
@@ -64,7 +68,7 @@ class Yambo(AutotoolsPackage, CudaPackage):
               msg="Parallel linear algebra available only with +mpi")
     depends_on('blas')
     depends_on('lapack')
-    depends_on('netlib-lapack%nvhpc', when='%nvhpc')
+    # depends_on('netlib-lapack%nvhpc', when='%nvhpc')
     depends_on('scalapack', when='linalg=parallel')
     depends_on('petsc+mpi+double+complex~hypre~metis', when='linalg=slepc +mpi+dp')
     depends_on('petsc~mpi~double+complex~superlu-dist~hypre~metis', when='linalg=slepc ~mpi~dp')
@@ -74,16 +78,22 @@ class Yambo(AutotoolsPackage, CudaPackage):
     depends_on('slepc~arpack@:3.7.4', when='@:4.5.3 linalg=slepc')
 
     # GPU acceleration
-    conflicts('cuda_arch=none', when='+cuda',
-              msg="CUDA architecture is required when +cuda")
-    conflicts('@:4.5.3', when='+cuda',
-              msg="CUDA-Fortran available only from version 5.0.0")
-    conflicts('%gcc', when='+cuda',
-              msg="CUDA-Fortran available only with NV or PGI compilers")
-    conflicts('%intel', when='+cuda',
-              msg="CUDA-Fortran available only with NV or PGI compilers")
-    conflicts('%oneapi', when='+cuda',
-              msg="CUDA-Fortran available only with NV or PGI compilers")
+    variant('cuda-fortran', default=False, description='Build with CUDA-Fortran')
+    variant('cuda_arch', default='none', values=['none', '86', '50', '72', '90', 
+                    '53', '21', '11', '62', '13', '52', '35', '12', '75', '89', 
+                    '70', '32', '10', '30', '87', '60', '37', '61', '80', '20'], 
+            multi=False, when='+cuda-fortran', description='CUDA architecture')
+    with when('+cuda-fortran'):
+        conflicts('cuda_arch=none',
+                  msg="CUDA architecture is required when +cuda-fortran")
+        conflicts('@:4.5.3',
+                  msg="CUDA-Fortran available only from version 5.0.0")
+        conflicts('%gcc',
+                  msg="CUDA-Fortran available only with NV or PGI compilers")
+        conflicts('%intel',
+                  msg="CUDA-Fortran available only with NV or PGI compilers")
+        conflicts('%oneapi',
+                  msg="CUDA-Fortran available only with NV or PGI compilers")
 
     # Other variants
     variant('dp', default=False, description='Enable double precision')
@@ -117,11 +127,29 @@ class Yambo(AutotoolsPackage, CudaPackage):
     depends_on('libxc@2.0.3:3.0.0', when='@:5.0.99')
     depends_on('libxc@5.0:', when='@5.0.99:')
 
-    parallel = False
+    # IOTK
+    resource(
+       name='iotk',
+       url='https://github.com/yambo-code/yambo-libraries/raw/master/external/iotk-y1.2.2.tar.gz',
+       sha256='64af6a4b98f3b62fcec603e4e1b00ef994f95a0efa53ab6593ebcfe6de1739ef',
+       destination='lib/iotk'
+    )
+
+    # Yambo driver
+    resource(
+       name='driver',
+       url='https://github.com/yambo-code/yambo-libraries/raw/master/external/Ydriver-1.1.0.tar.gz',
+       sha256='6c316d613f5a41ddd15efad7ba97e4712f87d7e56c073ba5458caf424afcb97a',
+       destination='',
+       placement={'driver': 'lib/yambo/driver'}
+    )
+
 
     @property
     def build_targets(self):
         spec = self.spec
+        if '+ph' in spec and '+rt' in spec and '+sc' in spec and '+nl' in spec:
+            return ['all']
         bt = ['core']
         if '+ph' in spec:
             bt.append('ph-project')
@@ -133,6 +161,19 @@ class Yambo(AutotoolsPackage, CudaPackage):
             bt.append('nl-project')
         return bt
         
+    # @run_before('configure')
+    # def filter_makefile(self):
+    #     filter_file(r'LIB="$(pkgname_Ylib)"; $(getsrc_git); $(call link_it,"yambo")', 
+    #                 r'LIB="$(pkgname_Ylib)"', 
+    #                 "lib/archive/Makefile.loc")
+    #     filter_file(r'LIB="$(pkgname_iotk)"; $(getsrc)', 
+    #                 r'LIB="$(pkgname_iotk)"', 
+    #                 "lib/archive/Makefile.loc")
+    #     filter_file(r'@if ! test -d iotk; then ln -s iotk $(PACKAGE); fi', 
+    #                 r'@if test -d iotk; then ln -s iotk $(PACKAGE); touch uncompress.stamp; fi', 
+    #                 "lib/iotk/Makefile.loc")
+    #     filter_file('\t'+r'$(uncompress)', "", "lib/iotk/Makefile.loc")
+
     # The configure in the package has the string 'cat config/report'
     # hard-coded, which causes a failure at configure time due to the
     # current working directory in Spack. Fix this by using the absolute
@@ -157,16 +198,22 @@ class Yambo(AutotoolsPackage, CudaPackage):
     def setup_build_environment(self, env):
         spec = self.spec
         if spec['mpi'].name == 'openmpi':
-            env.set('MPICC', spec['mpi'].mpicc)
-            env.set('MPICXX', spec['mpi'].mpicxx)
-            env.set('MPIF77', spec['mpi'].mpif77)
-            env.set('MPIFC', spec['mpi'].mpifc)
+            # env.set('MPICC', spec['mpi'].mpicc)
+            # env.set('MPICXX', spec['mpi'].mpicxx)
+            # env.set('MPIF77', spec['mpi'].mpif77)
+            # env.set('MPIFC', spec['mpi'].mpifc)
+            env.set('MPICC', 'mpicc')
+            env.set('MPICXX', 'mpicxx')
+            env.set('MPIF77', 'mpif77')
+            env.set('MPIFC', 'mpif90')
         if 'intel' in spec['mpi'].name:
             env.set('MPICC', '{0}/mpiicc'.format(spec['mpi'].prefix.mpi.latest.bin))
             env.set('MPICXX', '{0}/mpiicpc'.format(spec['mpi'].prefix.mpi.latest.bin))
             env.set('MPIF77', '{0}/mpiifort'.format(spec['mpi'].prefix.mpi.latest.bin))
             env.set('MPIFC', '{0}/mpiifort'.format(spec['mpi'].prefix.mpi.latest.bin))
         if '%nvhpc' in spec:
+            env.set('FC', "nvfortran")
+            env.set('CPP', "cpp -E")
             env.set('FPP', "nvfortran -Mpreprocess -E")
             env.set('F90SUFFIX', ".f90")
         if '%intel' in spec:
@@ -305,10 +352,10 @@ class Yambo(AutotoolsPackage, CudaPackage):
         args.append('--with-libxc-path={0}'.format(spec['libxc'].prefix))
 
         # CUDA
-        if '+cuda' in spec:
-            enable_cuda = '--enable-cuda=cuda{0}.{1}'.format(*spec['cuda'].version)
-            for cc in spec.variants['cuda_arch'].value:
-                enable_cuda += ',cc{0}'.format(cc)
+        if '+cuda-fortran' in spec:
+            # enable_cuda = '--enable-cuda=cuda{0}.{1}'.format(*spec['cuda'].version)
+            enable_cuda = '--enable-cuda=cuda{0}.{1}'.format(11, 0)
+            enable_cuda += ',cc{0}'.format(spec.variants['cuda_arch'].value)
             args.append(enable_cuda)
 
         return args

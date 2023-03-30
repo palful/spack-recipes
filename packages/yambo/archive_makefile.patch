@@ -1,0 +1,20 @@
+--- a/lib/archive/Makefile.loc
++++ b/lib/archive/Makefile.loc
+@@ -11,7 +11,7 @@
+ # Libraries (GIT + archives)
+ #
+ Ylib:
+-	@+URL="$(url_Ylib)"  ;  GBRANCH="$(branch_Ylib)"  ;  GIT="$(git_Ylib)"; LIB="$(pkgname_Ylib)"; $(getsrc_git); $(call link_it,"yambo")
++	@+URL="$(url_Ylib)"  ;  GBRANCH="$(branch_Ylib)"  ;  GIT="$(git_Ylib)"; LIB="$(pkgname_Ylib)"
+ #
+ # Libraries (archives)
+ #
+@@ -20,7 +20,7 @@
+ futile:
+ 	@+URL="$(url_futile)"   ; LIB="$(pkgname_futile)"; $(getsrc)
+ iotk:
+-	@+URL="$(url_iotk)"     ; LIB="$(pkgname_iotk)"; $(getsrc)
++	@+URL="$(url_iotk)"     ; LIB="$(pkgname_iotk)"
+ hdf5:
+ 	@+URL="$(url_hdf5)"     ; LIB="$(pkgname_hdf5)"; $(getsrc)
+ netcdf:

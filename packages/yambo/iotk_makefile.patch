@@ -1,0 +1,12 @@
+--- a/lib/iotk/Makefile.loc
++++ b/lib/iotk/Makefile.loc
+@@ -24,8 +24,7 @@
+ all: $(LIBRARY)
+ #
+ uncompress:
+-	@if ! test -d iotk; then ln -s iotk $(PACKAGE); fi
+-	@$(uncompress)
++	@if test -d iotk; then ln -s iotk $(PACKAGE); touch uncompress.stamp; fi
+ 
+ configure: uncompress
+ 	@if ! test -e configured.stamp; then \
