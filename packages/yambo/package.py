@@ -30,8 +30,8 @@ class Yambo(AutotoolsPackage):
     maintainers = ['nicspalla']
 
     version('develop', branch='develop', git="https://github.com/yambo-code/yambo-devel")
-    version('bug-fixes', branch='bug-fixes', git="https://github.com/yambo-code/yambo-devel")
-    version('devel-gpu', branch='tech/devel-gpu', git="https://github.com/yambo-code/yambo-devel")
+    version('develop-bugfixes', branch='bug-fixes', git="https://github.com/yambo-code/yambo-devel")
+    version('develop-gpu', branch='tech/devel-gpu', git="https://github.com/yambo-code/yambo-devel")
     version('5.1.1', sha256='c85036ca60507e627c47b6c6aee8241830349e88110e1ce9132ef03ab2c4e9f6')
     version('5.0.4', sha256='1841ded51cc31a4293fa79252d7ce893d998acea7ccc836e321c3edba19eae8a')
     version('5.0.3', sha256='7a5a5f3939bdb6438a3f41a3d26fff0ea6f77339e4daf6a5d850cf2a51da4414')
@@ -70,12 +70,12 @@ class Yambo(AutotoolsPackage):
     depends_on('lapack')
     # depends_on('netlib-lapack%nvhpc', when='%nvhpc')
     depends_on('scalapack', when='linalg=parallel')
-    depends_on('petsc+mpi+double+complex~hypre~metis', when='linalg=slepc +mpi+dp')
-    depends_on('petsc~mpi~double+complex~superlu-dist~hypre~metis', when='linalg=slepc ~mpi~dp')
-    depends_on('petsc~mpi+double+complex~hypre~metis', when='linalg=slepc ~mpi+dp')
-    depends_on('petsc+mpi~double+complex~superlu-dist~hypre~metis', when='linalg=slepc +mpi~dp')
-    depends_on('slepc~arpack', when='linalg=slepc')
-    depends_on('slepc~arpack@:3.7.4', when='@:4.5.3 linalg=slepc')
+    depends_on('petsc~cuda+mpi+double+complex~hypre~metis', when='linalg=slepc +mpi+dp')
+    depends_on('petsc~cuda~mpi~double+complex~superlu-dist~hypre~metis', when='linalg=slepc ~mpi~dp')
+    depends_on('petsc~cuda~mpi+double+complex~hypre~metis', when='linalg=slepc ~mpi+dp')
+    depends_on('petsc~cuda+mpi~double+complex~superlu-dist~hypre~metis', when='linalg=slepc +mpi~dp')
+    depends_on('slepc~cuda~arpack', when='linalg=slepc')
+    depends_on('slepc~cuda~arpack@:3.7.4', when='@:4.5.3 linalg=slepc')
 
     # GPU acceleration
     variant('cuda-fortran', default=False, description='Build with CUDA-Fortran')
@@ -99,12 +99,14 @@ class Yambo(AutotoolsPackage):
     variant('dp', default=False, description='Enable double precision')
     variant('profile', values=any_combination_of('time', 'memory'),
             description='Activate profiling of specific sections')
-    variant('yambopy', default=False, description='Install Yambopy package')
-    depends_on('py-yambopy', when='+yambopy')
     variant('ph', default=False, description='Compile Electron-phonon coupling project executables: yambo_ph ypp_ph')
     variant('rt', default=False, description='Compile Real-time dynamics project executables: yambo_rt ypp_rt')
     variant('sc', default=False, description='Compile Self-consistent (COHSEX, HF, DFT) project executables: yambo_sc ypp_sc')
     variant('nl', default=False, description='Compile Non-linear optics project executables: yambo_nl ypp_nl')
+
+    # Yambopy
+    # variant('yambopy', default=False, description='Install Yambopy package')
+    # depends_on('py-yambopy', when='+yambopy')
 
     # FFTW
     depends_on('fftw-api@3~mpi', when='~mpi')
@@ -124,8 +126,8 @@ class Yambo(AutotoolsPackage):
     depends_on('netcdf-fortran')
 
     # LIBXC
-    depends_on('libxc@2.0.3:3.0.0', when='@:5.0.99')
-    depends_on('libxc@5.0:', when='@5.0.99:')
+    depends_on('libxc@2.0.3:3.0.0~cuda', when='@:5.0.99')
+    depends_on('libxc@5.0:~cuda', when='@5.0.99:')
 
     # IOTK
     resource(
@@ -141,7 +143,8 @@ class Yambo(AutotoolsPackage):
        url='https://github.com/yambo-code/yambo-libraries/raw/master/external/Ydriver-1.1.0.tar.gz',
        sha256='6c316d613f5a41ddd15efad7ba97e4712f87d7e56c073ba5458caf424afcb97a',
        destination='',
-       placement={'driver': 'lib/yambo/driver'}
+       placement={'driver': 'lib/yambo/driver'},
+       when='@5.1.1'
     )
 
 
@@ -216,6 +219,7 @@ class Yambo(AutotoolsPackage):
             env.set('CPP', "cpp -E")
             env.set('FPP', "nvfortran -Mpreprocess -E")
             env.set('F90SUFFIX', ".f90")
+            env.unset('CUDA_HOME')
         if '%intel' in spec:
             env.set('FPP', "ifort -E -free -P")
             env.set('FC', "ifort")
