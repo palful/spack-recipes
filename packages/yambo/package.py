@@ -23,7 +23,7 @@ class Yambo(AutotoolsPackage):
     codes used in scientific community, Quantum ESPRESSO and Abinit.
     """
 
-    homepage = "http://www.yambo-code.org/index.php"
+    homepage = "http://www.yambo-code.eu"
     url = "https://github.com/yambo-code/yambo/archive/5.1.1.tar.gz"
     git = "https://github.com/yambo-code/yambo.git"
 
@@ -31,7 +31,8 @@ class Yambo(AutotoolsPackage):
 
     version('develop', branch='develop', git="https://github.com/yambo-code/yambo-devel")
     version('develop-bugfixes', branch='bug-fixes', git="https://github.com/yambo-code/yambo-devel")
-    version('develop-gpu', branch='tech/devel-gpu', git="https://github.com/yambo-code/yambo-devel")
+    # version('develop-gpu', branch='tech/devel-gpu', git="https://github.com/yambo-code/yambo-devel")
+    version('develop-mpa', branch='devel-mpa', git="https://github.com/yambo-code/yambo-devel")
     version('5.1.1', sha256='c85036ca60507e627c47b6c6aee8241830349e88110e1ce9132ef03ab2c4e9f6')
     version('5.0.4', sha256='1841ded51cc31a4293fa79252d7ce893d998acea7ccc836e321c3edba19eae8a')
     version('5.0.3', sha256='7a5a5f3939bdb6438a3f41a3d26fff0ea6f77339e4daf6a5d850cf2a51da4414')
@@ -46,14 +47,11 @@ class Yambo(AutotoolsPackage):
     version('4.3.3', sha256='790fa1147044c7f33f0e8d336ccb48089b48d5b894c956779f543e0c7e77de19')
 
     patch('hdf5.patch', sha256='b9362020b0a29abec535afd7d782b8bb643678fe9215815ca8dc9e4941cb169f', when='@4.3:5.0.99')
-    patch('configure_lib_check.patch', sha256='5061e98eb4763930cdd3dcb4a4c80f288a801ee492ad925091b7d4bfb5cac69e', when='@5.1.1:')
+    # patch('configure_lib_check.patch', sha256='5061e98eb4763930cdd3dcb4a4c80f288a801ee492ad925091b7d4bfb5cac69e', when='@5.1.1:')
     # patch('hdf5_check.patch', sha256='aae11657736448116cd13cdf1d228085213220733b6c0b42dc6246d0b20456e4', when='@5.1.1:')
     # patch('petsc.patch', sha256='90328274cbdc2a8155bb59af344bbcb2dff0a69bac6b58da54d1194bd3ff50fe', when='@5.1.1:')
     patch('s_psi.patch', sha256='981a0783a9a2c21a89faa358eaf277213837ed712c936152842f8cf7620f52cd', when='%gcc@12.0.0:')
-    patch('iotk_url.patch', sha256='73d1be69002c785bdd2894a3504da06f440e81f07f7356cd52079f287be6d2b9', when='@:4.5.0')
-    patch('v1.patch', sha256='4d491c1781dad1f37c31b8a3952af9a72af0496d2b7973f072a474215aa5242f', when='@5.1.1')
-    patch('archive_makefile.patch', sha256='d6761e64713dcc11f745c860cdddcd55911d61065bbea8e19e0a3aee23cb818e', when='@5.1.1')
-    patch('iotk_makefile.patch', sha256='ae10dfea8fb1a657a016844687c8151f558c152bc9cc059895ed46b3f9fd3ec6', when='@5.1.1')
+    # patch('iotk_url.patch', sha256='73d1be69002c785bdd2894a3504da06f440e81f07f7356cd52079f287be6d2b9', when='@:4.5.0')
 
     # MPI + OpenMP parallelism
     variant('mpi', default=True, description='Enable MPI support')
@@ -127,7 +125,7 @@ class Yambo(AutotoolsPackage):
 
     # LIBXC
     depends_on('libxc@2.0.3:3.0.0~cuda', when='@:5.0.99')
-    depends_on('libxc@5.0:~cuda', when='@5.0.99:')
+    depends_on('libxc@5.0:~cuda', when='@5.1.0:')
 
     # IOTK
     resource(
@@ -139,14 +137,47 @@ class Yambo(AutotoolsPackage):
 
     # Yambo driver
     resource(
-       name='driver',
+       name='Ydriver',
+       url='https://github.com/yambo-code/yambo-libraries/raw/master/external/Ydriver-0.0.2.tar.gz',
+       sha256='63984c3eb2d28320b320f1d9b3a2c1efcd3c9505a10d887c8bbd54513442202c',
+       destination='',
+       placement={'driver': 'lib/yambo/driver'},
+       when='@5.0.0:5.0.99'
+    )
+    resource(
+       name='Ydriver',
        url='https://github.com/yambo-code/yambo-libraries/raw/master/external/Ydriver-1.1.0.tar.gz',
        sha256='6c316d613f5a41ddd15efad7ba97e4712f87d7e56c073ba5458caf424afcb97a',
        destination='',
        placement={'driver': 'lib/yambo/driver'},
        when='@5.1.1'
     )
+    # resource(
+    #    name='Ydriver',
+    #    url='https://github.com/yambo-code/yambo-libraries/raw/master/external/Ydriver-1.1.0.tar.gz',
+    #    sha256='6c316d613f5a41ddd15efad7ba97e4712f87d7e56c073ba5458caf424afcb97a',
+    #    expand=False, destination='lib/archive', placement={'Ydriver-1.1.0.tar.gz': 'Ydriver-1.1.0.tar.gz'},
+    #    when='@develop-mpa'
+    # )
+    resource(
+       name='Ydriver',
+       url='https://github.com/yambo-code/Ydriver/archive/refs/tags/1.2.0.tar.gz',
+       sha256='0f29a44e9c4b49d3f6be3f159a7ef415932b2ae2f2fdba163af60a0673befe6e',
+       destination='lib/yambo/Ydriver',
+       placement={'config': 'config',
+                  'configure': 'configure',
+                  'example': 'example',
+                  'include': 'include',
+                  'lib': 'lib',
+                  'bin': 'bin',
+                  'Makefile': 'Makefile',
+                  'src': 'src',
+              },
+       when='@develop'
+    )
 
+    # Sanity check
+    sanity_check_is_file = ["bin/yambo", "bin/ypp", "bin/a2y", "bin/c2y", "bin/p2y"]
 
     @property
     def build_targets(self):
@@ -163,28 +194,59 @@ class Yambo(AutotoolsPackage):
         if '+nl' in spec:
             bt.append('nl-project')
         return bt
-        
-    # @run_before('configure')
-    # def filter_makefile(self):
-    #     filter_file(r'LIB="$(pkgname_Ylib)"; $(getsrc_git); $(call link_it,"yambo")', 
-    #                 r'LIB="$(pkgname_Ylib)"', 
-    #                 "lib/archive/Makefile.loc")
-    #     filter_file(r'LIB="$(pkgname_iotk)"; $(getsrc)', 
-    #                 r'LIB="$(pkgname_iotk)"', 
-    #                 "lib/archive/Makefile.loc")
-    #     filter_file(r'@if ! test -d iotk; then ln -s iotk $(PACKAGE); fi', 
-    #                 r'@if test -d iotk; then ln -s iotk $(PACKAGE); touch uncompress.stamp; fi', 
-    #                 "lib/iotk/Makefile.loc")
-    #     filter_file('\t'+r'$(uncompress)', "", "lib/iotk/Makefile.loc")
 
-    # The configure in the package has the string 'cat config/report'
-    # hard-coded, which causes a failure at configure time due to the
-    # current working directory in Spack. Fix this by using the absolute
-    # path to the file.
+    @run_before('configure')
+    def filter_iotk(self):
+        # block iotk download
+        filter_file('; \$\(getsrc\)', ' ', 'lib/archive/Makefile.loc')
+        # filter_file('783147', '962173', 'lib/archive/Makefile.loc', when='@:4.5.0')
+        with when('@:5.0.99'):
+            filter_file('\( cd \.\./archive ;', r'#( cd ../archive ;', 'lib/iotk/Makefile.loc')
+            filter_file('; \$\(make\) \$\(TARBALL\) ; fi \)', r'; #$(make) $(TARBALL) ; fi )', 'lib/iotk/Makefile.loc')
+            filter_file('gunzip', r'#gunzip', 'lib/iotk/Makefile.loc')
+        with when('@5.1.1:'):
+            # set link for iotk lib dir and block tarball uncompress
+            filter_file('! test -d iotk;', ' test -d iotk;', 'lib/iotk/Makefile.loc')
+            filter_file('@\$\(uncompress\)', 'touch uncompress.stamp', 'lib/iotk/Makefile.loc')
+
+    @run_before('configure')
+    def filter_ydriver(self):
+        spec = self.spec
+        if '@5.1.1' in spec:
+            # solve issue for parallel compilation
+            filter_file('\$\(MAKE\) \$\(MAKEFLAGS\) -f Makefile.loc', 
+                        r'$(MAKE) -f Makefile.loc $(MAKEFLAGS)', 
+                        'config/mk/global/functions/get_libraries.mk')
+            # block Ydriver download
+            filter_file('; \$\(getsrc_git\); \$\(call link_it,"yambo"\)', ' ', 'lib/archive/Makefile.loc')
+        if '@develop' in spec:
+            # block Ydriver download
+            filter_file('; \$\(call getsrc_git,"Ydriver"\); \$\(call copy_driver,"Ydriver"\)', ' ', 'lib/archive/Makefile.loc')
+
     @run_before('configure')
     def filter_configure(self):
+        spec = self.spec
+        # The configure in the package has the string 'cat config/report'
+        # hard-coded, which causes a failure at configure time due to the
+        # current working directory in Spack. Fix this by using the absolute
+        # path to the file.
         report_abspath = join_path(self.build_directory, 'config', 'report')
         filter_file('cat config/report', 'cat '+report_abspath, 'configure')
+        # fix petsc bad recognition
+        filter_file('#include <petsc/finclude/petscvec.h90>', '#include <petsc/finclude/petscvec.h>', 'configure')
+        # fix hdf5 bad linking and include flags
+        filter_file('.+try_HDF5_LIBS=..h5pfc -show .+', '#', 'configure')
+        filter_file('.+try_hdf5_incdir=..h5pfc -show .+', '#', 'configure')
+        filter_file('.+try_HDF5_LIBS=..h5fc -show .+', '#', 'configure')
+        filter_file('.+try_hdf5_incdir=..h5fc -show .+', '#', 'configure')
+        if '@develop-mpa' in spec:
+            # fix petsc linking issue
+            filter_file('libs="-lint_modules \$libs \$llocal \$lPLA \$lIO \$lextlibs -lm"', 
+                        r'libs="-lint_modules $libs $llocal $lSL $lPLA $lIO $lextlibs -lm"', 
+                        'sbin/compilation/libraries.sh')
+            filter_file('libs="\$libs \$llocal \$lPLA \$lIO \$lextlibs -lm"', 
+                        r'libs="$libs $llocal $lSL $lPLA $lIO $lextlibs -lm"', 
+                        'sbin/compilation/libraries.sh')
 
     def enable_or_disable_time(self, activated):
         return '--enable-time-profile' if activated else '--disable-time-profile'

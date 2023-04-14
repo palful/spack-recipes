@@ -61,15 +61,17 @@ printf "repos:\n  - $HOME/my-repo\n" > $HOME/.spack/repos.yaml
 spack install yambo %gcc@11.2.0 +mpi +openmp profile=time,memory
 ```
 
-Here an example of command installation of Yambo supporting acceleration with CUDA-Fortran on a workstation with NVidia Titan V devices (cc70):
-```
-spack install yambo@5.1.1+cuda-fortran+mpi+openmp+parallel_io+ph+rt+sc+nl cuda_arch=70 linalg=parallel,slepc %nvhpc
-```
-
 Now you can load the Yambo package and check if it works:
 ```
 spack load yambo
 yambo -h
+```
+
+### Installing on accelerated machines
+
+Here an example of command installation of Yambo supporting acceleration with CUDA-Fortran on a workstation with NVidia Titan V devices (cc70):
+```
+spack install yambo@5.1.1+cuda-fortran+mpi+openmp+parallel_io+ph+rt+sc+nl cuda_arch=70 linalg=parallel,slepc %nvhpc
 ```
 
 ### Installing on MacOS
