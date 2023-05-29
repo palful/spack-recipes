@@ -24,15 +24,15 @@ class Yambo(AutotoolsPackage):
     """
 
     homepage = "http://www.yambo-code.eu"
-    url = "https://github.com/yambo-code/yambo/archive/5.1.1.tar.gz"
+    url = "https://github.com/yambo-code/yambo/archive/5.1.2.tar.gz"
     git = "https://github.com/yambo-code/yambo.git"
 
     maintainers = ['nicspalla']
 
     version('develop', branch='develop', git="https://github.com/yambo-code/yambo-devel")
     version('develop-bugfixes', branch='bug-fixes', git="https://github.com/yambo-code/yambo-devel")
-    # version('develop-gpu', branch='tech/devel-gpu', git="https://github.com/yambo-code/yambo-devel")
-    version('develop-mpa', branch='devel-mpa', git="https://github.com/yambo-code/yambo-devel")
+    version('5.2', branch='5.2')
+    version('5.1.2', sha256='9625d8a96bd9a3ff3713ebe53228d5ac9be0a98adecbe2a2bad67234c0e26a2e')
     version('5.1.1', sha256='c85036ca60507e627c47b6c6aee8241830349e88110e1ce9132ef03ab2c4e9f6')
     version('5.0.4', sha256='1841ded51cc31a4293fa79252d7ce893d998acea7ccc836e321c3edba19eae8a')
     version('5.0.3', sha256='7a5a5f3939bdb6438a3f41a3d26fff0ea6f77339e4daf6a5d850cf2a51da4414')
@@ -59,21 +59,22 @@ class Yambo(AutotoolsPackage):
     depends_on('mpi', when='+mpi')
 
     # Linear algebra
-    variant('linalg', default='none', values=('none', 'parallel', 'slepc'), multi=True,
-            description="""Activate additional support for linear algebra:
-"parallel" uses SCALAPACK and "slepc" is used for diagonalization of BSE""")
-    conflicts('linalg=parallel', when='~mpi',
+    # variant('linalg', default='none', values=('none', 'parallel', 'slepc'), multi=True,
+    #         description="""Activate additional support for linear algebra:
+# "parallel" uses SCALAPACK and "slepc" is used for diagonalization of BSE""")
+    conflicts('+scalapack', when='~mpi',
               msg="Parallel linear algebra available only with +mpi")
     depends_on('blas')
     depends_on('lapack')
-    # depends_on('netlib-lapack%nvhpc', when='%nvhpc')
-    depends_on('scalapack', when='linalg=parallel')
-    depends_on('petsc~cuda+mpi+double+complex~hypre~metis', when='linalg=slepc +mpi+dp')
-    depends_on('petsc~cuda~mpi~double+complex~superlu-dist~hypre~metis', when='linalg=slepc ~mpi~dp')
-    depends_on('petsc~cuda~mpi+double+complex~hypre~metis', when='linalg=slepc ~mpi+dp')
-    depends_on('petsc~cuda+mpi~double+complex~superlu-dist~hypre~metis', when='linalg=slepc +mpi~dp')
-    depends_on('slepc~cuda~arpack', when='linalg=slepc')
-    depends_on('slepc~cuda~arpack@:3.7.4', when='@:4.5.3 linalg=slepc')
+    variant('scalapack', default=False, description='Activate support for parallel linear algebra with SCALAPACK')
+    depends_on('scalapack', when='+scalapack')
+    variant('slepc', default=False, description='Activate support for linear algebra with SLEPc and PETSc')
+    depends_on('petsc~cuda+mpi+double+complex~superlu-dist~hypre~metis', when='+slepc+mpi+dp')
+    depends_on('petsc~cuda~mpi~double+complex~superlu-dist~hypre~metis', when='+slepc~mpi~dp')
+    depends_on('petsc~cuda~mpi+double+complex~superlu-dist~hypre~metis', when='+slepc~mpi+dp')
+    depends_on('petsc~cuda+mpi~double+complex~superlu-dist~hypre~metis', when='+slepc+mpi~dp')
+    depends_on('slepc~cuda~arpack', when='+slepc')
+    depends_on('slepc~cuda~arpack@:3.7.4', when='@:4.5.3 +slepc')
 
     # GPU acceleration
     variant('cuda-fortran', default=False, description='Build with CUDA-Fortran')
@@ -95,8 +96,10 @@ class Yambo(AutotoolsPackage):
 
     # Other variants
     variant('dp', default=False, description='Enable double precision')
-    variant('profile', values=any_combination_of('time', 'memory'),
-            description='Activate profiling of specific sections')
+    variant('time', default=False, description='Activate time profiling of specific sections')
+    variant('memory', default=False, description='Activate memory profiling of specific sections')
+    # variant('profile', values=any_combination_of('time', 'memory'),
+    #         description='Activate profiling of specific sections')
     variant('ph', default=False, description='Compile Electron-phonon coupling project executables: yambo_ph ypp_ph')
     variant('rt', default=False, description='Compile Real-time dynamics project executables: yambo_rt ypp_rt')
     variant('sc', default=False, description='Compile Self-consistent (COHSEX, HF, DFT) project executables: yambo_sc ypp_sc')
@@ -150,15 +153,8 @@ class Yambo(AutotoolsPackage):
        sha256='6c316d613f5a41ddd15efad7ba97e4712f87d7e56c073ba5458caf424afcb97a',
        destination='',
        placement={'driver': 'lib/yambo/driver'},
-       when='@5.1.1'
+       when='@5.1.0:5.1.99'
     )
-    # resource(
-    #    name='Ydriver',
-    #    url='https://github.com/yambo-code/yambo-libraries/raw/master/external/Ydriver-1.1.0.tar.gz',
-    #    sha256='6c316d613f5a41ddd15efad7ba97e4712f87d7e56c073ba5458caf424afcb97a',
-    #    expand=False, destination='lib/archive', placement={'Ydriver-1.1.0.tar.gz': 'Ydriver-1.1.0.tar.gz'},
-    #    when='@develop-mpa'
-    # )
     resource(
        name='Ydriver',
        url='https://github.com/yambo-code/Ydriver/archive/refs/tags/1.2.0.tar.gz',
@@ -173,7 +169,7 @@ class Yambo(AutotoolsPackage):
                   'Makefile': 'Makefile',
                   'src': 'src',
               },
-       when='@develop'
+       when='@5.2:'
     )
 
     # Sanity check
@@ -212,14 +208,14 @@ class Yambo(AutotoolsPackage):
     @run_before('configure')
     def filter_ydriver(self):
         spec = self.spec
-        if '@5.1.1' in spec:
+        if '@5.1.0:5.1.99' in spec:
             # solve issue for parallel compilation
             filter_file('\$\(MAKE\) \$\(MAKEFLAGS\) -f Makefile.loc', 
                         r'$(MAKE) -f Makefile.loc $(MAKEFLAGS)', 
                         'config/mk/global/functions/get_libraries.mk')
             # block Ydriver download
             filter_file('; \$\(getsrc_git\); \$\(call link_it,"yambo"\)', ' ', 'lib/archive/Makefile.loc')
-        if '@develop' in spec:
+        if '@5.2:' in spec:
             # block Ydriver download
             filter_file('; \$\(call getsrc_git,"Ydriver"\); \$\(call copy_driver,"Ydriver"\)', ' ', 'lib/archive/Makefile.loc')
 
@@ -239,7 +235,7 @@ class Yambo(AutotoolsPackage):
         filter_file('.+try_hdf5_incdir=..h5pfc -show .+', '#', 'configure')
         filter_file('.+try_HDF5_LIBS=..h5fc -show .+', '#', 'configure')
         filter_file('.+try_hdf5_incdir=..h5fc -show .+', '#', 'configure')
-        if '@develop-mpa' in spec:
+        if '@5.1.2:' in spec:
             # fix petsc linking issue
             filter_file('libs="-lint_modules \$libs \$llocal \$lPLA \$lIO \$lextlibs -lm"', 
                         r'libs="-lint_modules $libs $llocal $lSL $lPLA $lIO $lextlibs -lm"', 
@@ -314,7 +310,8 @@ class Yambo(AutotoolsPackage):
         args.extend(self.enable_or_disable('dp'))
 
         # Application profiling
-        args.extend(self.enable_or_disable('profile'))
+        args.extend(self.enable_or_disable('time'))
+        args.extend(self.enable_or_disable('memory'))
 
         # MPI + threading
         args.extend(self.enable_or_disable('mpi'))
@@ -373,7 +370,7 @@ class Yambo(AutotoolsPackage):
                 # '--with-blas-libs="{0} {1}"'.format(spec['blas'].libs.search_flags, spec['blas'].libs.link_flags),
                 # '--with-lapack-libs="{0} {1}"'.format(spec['lapack'].libs.search_flags, spec['lapack'].libs.link_flags),
             ])
-        if 'linalg=parallel' in spec:
+        if '+scalapack' in spec:
             args.append('--enable-par-linalg')
             if 'mkl' in spec and 'intel' in spec['mpi'].name:
                 args.extend([
@@ -387,7 +384,7 @@ class Yambo(AutotoolsPackage):
                     '--with-blacs-libs={0}'.format(spec['scalapack'].libs),
                     '--with-scalapack-libs={0}'.format(spec['scalapack'].libs),
                 ])
-        if 'linalg=slepc' in spec:
+        if '+slepc' in spec:
             args.extend([
                 '--enable-slepc-linalg',
                 '--with-petsc-path={0}'.format(spec['petsc'].prefix),
