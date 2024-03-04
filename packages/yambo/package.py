@@ -8,7 +8,7 @@ from pathlib import Path
 from spack import *
 
 
-class Yambo(AutotoolsPackage):
+class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     """YAMBO is an open-source code released within the GPL licence.
 
     YAMBO implements Many-Body Perturbation Theory (MBPT) methods
@@ -25,13 +25,15 @@ class Yambo(AutotoolsPackage):
     """
 
     homepage = "http://www.yambo-code.eu"
-    url = "https://github.com/yambo-code/yambo/archive/5.2.0.tar.gz"
+    url = "https://github.com/yambo-code/yambo/archive/5.2.1.tar.gz"
     git = "https://github.com/yambo-code/yambo.git"
 
     maintainers = ['nicspalla']
 
     version('develop', branch='develop', git="https://github.com/yambo-code/yambo-devel")
     version('develop-bugfixes', branch='bug-fixes', git="https://github.com/yambo-code/yambo-devel")
+    version('develop-gpu', branch='tech/devel-gpu', git="https://github.com/yambo-code/yambo-devel")
+    version('5.2.1', sha256='0ac362854313927d75bbf87be98ff58447f3805f79724c38dc79df07f03a7046')
     version('5.2.0', sha256='eb41e83df716eb87261cf130ffe7f930e7dc2e123343d47b73d5a3c69fea7316')
     version('5.1.2', sha256='9625d8a96bd9a3ff3713ebe53228d5ac9be0a98adecbe2a2bad67234c0e26a2e')
     version('5.1.1', sha256='c85036ca60507e627c47b6c6aee8241830349e88110e1ce9132ef03ab2c4e9f6')
@@ -48,7 +50,7 @@ class Yambo(AutotoolsPackage):
     version('4.3.3', sha256='790fa1147044c7f33f0e8d336ccb48089b48d5b894c956779f543e0c7e77de19')
 
     patch('hdf5.patch', sha256='b9362020b0a29abec535afd7d782b8bb643678fe9215815ca8dc9e4941cb169f', when='@4.3:5.0.99')
-    patch('s_psi.patch', sha256='981a0783a9a2c21a89faa358eaf277213837ed712c936152842f8cf7620f52cd', when='%gcc@12.0.0:')
+    patch('s_psi.patch', sha256='981a0783a9a2c21a89faa358eaf277213837ed712c936152842f8cf7620f52cd', when='@:5.1.99 %gcc@12.0.0:')
 
     # MPI + OpenMP parallelism
     variant('mpi', default=True, description='Enable MPI support')
@@ -62,22 +64,20 @@ class Yambo(AutotoolsPackage):
     variant('scalapack', default=False, description='Activate support for parallel linear algebra with SCALAPACK')
     depends_on('scalapack', when='+scalapack')
     variant('slepc', default=False, description='Activate support for linear algebra with SLEPc and PETSc')
-    depends_on('petsc~cuda+mpi+double+complex~superlu-dist~hypre~metis', when='+slepc+mpi+dp')
-    depends_on('petsc~cuda~mpi~double+complex~superlu-dist~hypre~metis', when='+slepc~mpi~dp')
-    depends_on('petsc~cuda~mpi+double+complex~superlu-dist~hypre~metis', when='+slepc~mpi+dp')
-    depends_on('petsc~cuda+mpi~double+complex~superlu-dist~hypre~metis', when='+slepc+mpi~dp')
-    depends_on('slepc~cuda~arpack', when='+slepc')
-    depends_on('slepc~cuda~arpack@:3.7.4', when='@:4.5.3 +slepc')
-
-    # GPU acceleration
+    depends_on('petsc+complex~superlu-dist~hypre~metis', when='+slepc')
+    depends_on('petsc+mpi', when='+slepc+mpi')
+    depends_on('petsc+double', when='+slepc+dp')
+    depends_on('petsc+cuda', when='@5.2.1:5.2.99 +slepc+cuda')
+    depends_on('slepc~arpack', when='+slepc')
+    depends_on('slepc~arpack@:3.7.4', when='@:4.5.3 +slepc')
+    depends_on('slepc~arpack+cuda', when='@5.2.1:5.2.99 +slepc+cuda')
+    
+    variant('openmp5', default=False, description='Build with OpenMP-GPU support')
+    variant('openacc', default=False, description='Build with OpenACC')
     variant('cuda-fortran', default=False, description='Build with CUDA-Fortran')
-    variant('cuda_arch', default='none', values=['none', '86', '50', '72', '90', 
-                    '53', '21', '11', '62', '13', '52', '35', '12', '75', '89', 
-                    '70', '32', '10', '30', '87', '60', '37', '61', '80', '20'], 
-            multi=False, when='+cuda-fortran', description='CUDA architecture')
     with when('+cuda-fortran'):
         conflicts('cuda_arch=none',
-                  msg="CUDA architecture is required when +cuda-fortran")
+                  msg="CUDA architecture is required when +cuda")
         conflicts('@:4.5.3',
                   msg="CUDA-Fortran available only from version 5.0.0")
         conflicts('%gcc',
@@ -86,9 +86,12 @@ class Yambo(AutotoolsPackage):
                   msg="CUDA-Fortran available only with NV or PGI compilers")
         conflicts('%oneapi',
                   msg="CUDA-Fortran available only with NV or PGI compilers")
-    # variant('nvtx', default=False, description='Enable NVTX support', when='+cuda-fortran %nvhpc')
-    variant('magma', default=False, description='Enable Magma support', when='+cuda-fortran %nvhpc')
+    variant('nvtx', default=False, description='Enable NVTX support', when='+cuda %nvhpc')
+    variant('magma', default=False, description='Enable Magma support', when='+cuda %nvhpc')
     depends_on('magma+cuda', when='+magma')
+    with when('@develop-gpu'):
+        depends_on('devicexlib+cuda-fortran+cuda', when='+cuda-fortran+cuda %nvhpc')
+        depends_on('devicexlib+openacc+cuda', when='+openacc+cuda')
     
     # Other variants
     variant('dp', default=False, description='Enable double precision')
@@ -163,7 +166,23 @@ class Yambo(AutotoolsPackage):
                   'Makefile': 'Makefile',
                   'src': 'src',
               },
-       when='@5.2.0:'
+       when='@5.2.0:5.2.99'
+    )
+    resource(
+       name='Ydriver',
+       url='https://github.com/yambo-code/Ydriver/archive/refs/tags/1.3.0.tar.gz',
+       sha256='3cc30ce050d806b73cd12a806f1e015943f68fb8774bc9a13d246e8b30316dc1',
+       destination='lib/yambo/Ydriver',
+       placement={'config': 'config',
+                  'configure': 'configure',
+                  'example': 'example',
+                  'include': 'include',
+                  'lib': 'lib',
+                  'bin': 'bin',
+                  'Makefile': 'Makefile',
+                  'src': 'src',
+              },
+       when='@develop:'
     )
 
     # Sanity check
@@ -253,10 +272,6 @@ class Yambo(AutotoolsPackage):
     def setup_build_environment(self, env):
         spec = self.spec
         if spec['mpi'].name == 'openmpi':
-            # env.set('MPICC', spec['mpi'].mpicc)
-            # env.set('MPICXX', spec['mpi'].mpicxx)
-            # env.set('MPIF77', spec['mpi'].mpif77)
-            # env.set('MPIFC', spec['mpi'].mpifc)
             env.set('MPICC', 'mpicc')
             env.set('MPICXX', 'mpicxx')
             env.set('MPIF77', 'mpif77')
@@ -290,7 +305,8 @@ class Yambo(AutotoolsPackage):
         args = [
             '--enable-msgs-comps',
             '--disable-keep-objects',
-            '--with-editor=none'
+            '--with-editor=none',
+            '--enable-keep-src'
         ]
 
         # There are hard-coded paths that make the build process fail if the
@@ -361,8 +377,6 @@ class Yambo(AutotoolsPackage):
             args.extend([
                 '--with-blas-libs={0}'.format(spec['blas'].libs),
                 '--with-lapack-libs={0}'.format(spec['lapack'].libs),
-                # '--with-blas-libs="{0} {1}"'.format(spec['blas'].libs.search_flags, spec['blas'].libs.link_flags),
-                # '--with-lapack-libs="{0} {1}"'.format(spec['lapack'].libs.search_flags, spec['lapack'].libs.link_flags),
             ])
         if '+scalapack' in spec:
             args.append('--enable-par-linalg')
@@ -407,21 +421,27 @@ class Yambo(AutotoolsPackage):
 
         # Other dependencies
         args.append('--with-libxc-path={0}'.format(spec['libxc'].prefix))
+        if '@develop-gpu' in spec:
+            args.append('--with-devxlib-path={0}'.format(spec['devicexlib'].home))
 
-        # CUDA
-        if '+cuda-fortran' in spec:
-            # enable_cuda = '--enable-cuda=cuda{0}.{1}'.format(*spec['cuda'].version)
-            enable_cuda = '--enable-cuda=cuda{0}.{1}'.format(11, 0)
-            enable_cuda += ',cc{0}'.format(spec.variants['cuda_arch'].value)
-            args.append(enable_cuda)
-            # if '+nvtx' in spec:
-            #     p = Path(spec['%nvhpc'].prefix)
-            #     nvptx_path = list(p.glob('Linux*/202*/cuda/11.0'))[0]
-            #     if (nvptx_path.is_dir()):
-            #         args.append('--enable-nvtx={0}'.format(nvptx_path))
-            if '+magma' in spec:
-                args.append('--enable-magma-linalg')
-                args.append('--with-magma-path={0}'.format(spec['magma'].prefix))
+        # GPU
+        if '+cuda-fortran' in spec: args.append('--enable-cuda-fortran')
+        if '+openacc' in spec: args.append('--enable-openacc')
+        if '+openmp5' in spec: args.append('--enable-openmp5')
+        if '+cuda' in spec:
+            if '@develop-gpu' in spec:
+                args.append('--with-cuda-cc={0}'.format(*spec.variants['cuda_arch'].value))
+                args.append('--with-cuda-runtime={0}.{1}'.format(*spec['cuda'].version))
+                args.append('--with-cuda-path={0}'.format(spec['cuda'].prefix))
+            else:
+                enable_cuda = '--enable-cuda=cuda{0}.{1}'.format(*spec['cuda'].version)
+                enable_cuda += ',cc{0}'.format(*spec.variants['cuda_arch'].value)
+                args.append(enable_cuda)
+            if '+nvtx' in spec:
+                args.append('--enable-nvtx={0}'.format(spec['cuda'].home))
+        if '+magma' in spec:
+            args.append('--enable-magma-linalg')
+            args.append('--with-magma-path={0}'.format(spec['magma'].prefix))
 
         return args
 
