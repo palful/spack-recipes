@@ -25,7 +25,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     """
 
     homepage = "http://www.yambo-code.eu"
-    url = "https://github.com/yambo-code/yambo/archive/5.2.1.tar.gz"
+    url = "https://github.com/yambo-code/yambo/archive/5.2.2.tar.gz"
     git = "https://github.com/yambo-code/yambo.git"
 
     maintainers = ['nicspalla']
@@ -33,8 +33,12 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     version('develop', branch='develop', git="https://github.com/yambo-code/yambo-devel")
     version('develop-bugfixes', branch='bug-fixes', git="https://github.com/yambo-code/yambo-devel")
     version('develop-gpu', branch='tech/devel-gpu', git="https://github.com/yambo-code/yambo-devel")
+    version('5.2.3', sha256='a6168d1fa820af857ac51217bd6ad26dda4cc89c07e035bd7dc230038ae1ab9c')
+    version('5.2.2', sha256='2ddd6356830ce9302e304b7627cff3aa973846cf893f91742b4390d0b53d63d4')
     version('5.2.1', sha256='0ac362854313927d75bbf87be98ff58447f3805f79724c38dc79df07f03a7046')
     version('5.2.0', sha256='eb41e83df716eb87261cf130ffe7f930e7dc2e123343d47b73d5a3c69fea7316')
+    version('5.1.4', sha256='f2dfa1b4cb6a28bd54efb56a9333f51e6da9bd248d92ca3f6e945cb9ac9fe82c')
+    version('5.1.3', sha256='eb12297990030e785a58db6b9c9f0e34809eb2f095082e0aeca89eeaaf14ff37')
     version('5.1.2', sha256='9625d8a96bd9a3ff3713ebe53228d5ac9be0a98adecbe2a2bad67234c0e26a2e')
     version('5.1.1', sha256='c85036ca60507e627c47b6c6aee8241830349e88110e1ce9132ef03ab2c4e9f6')
     version('5.0.4', sha256='1841ded51cc31a4293fa79252d7ce893d998acea7ccc836e321c3edba19eae8a')
@@ -64,13 +68,14 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     variant('scalapack', default=False, description='Activate support for parallel linear algebra with SCALAPACK')
     depends_on('scalapack', when='+scalapack')
     variant('slepc', default=False, description='Activate support for linear algebra with SLEPc and PETSc')
-    depends_on('petsc+complex~superlu-dist~hypre~metis', when='+slepc')
+    #depends_on('petsc+complex~superlu-dist~hypre~metis', when='+slepc')
+    depends_on('petsc+complex~superlu-dist~hypre~metis+int64', when='+slepc')
     depends_on('petsc+mpi', when='+slepc+mpi')
     depends_on('petsc+double', when='+slepc+dp')
     depends_on('petsc+cuda', when='@5.2.1:5.2.99 +slepc+cuda')
     depends_on('slepc~arpack', when='+slepc')
-    depends_on('slepc~arpack@:3.7.4', when='@:4.5.3 +slepc')
-    depends_on('slepc~arpack+cuda', when='@5.2.1:5.2.99 +slepc+cuda')
+    depends_on('slepc@:3.7.4', when='@:4.5.3 +slepc')
+    depends_on('slepc+cuda', when='@5.2.1:5.2.99 +slepc+cuda')
     
     variant('openmp5', default=False, description='Build with OpenMP-GPU support')
     variant('openacc', default=False, description='Build with OpenACC')
@@ -111,7 +116,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     depends_on('fftw-api@3+mpi', when='+mpi')
 
     # HDF5
-    variant('parallel_io', default=False, when='@4.4.0: +mpi', description='Activate the HDF5 parallel I/O')
+    variant('parallel_io', default=True, when='@4.4.0: +mpi', description='Activate the HDF5 parallel I/O')
     depends_on('hdf5+fortran+hl~mpi', when='@:4.4.0')
     depends_on('hdf5+fortran+hl~mpi', when='~parallel_io')
     depends_on('hdf5+fortran+hl+mpi', when='+parallel_io')
@@ -126,6 +131,12 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     # LIBXC
     depends_on('libxc@2.0.3:3.0.0~cuda', when='@:5.0.99')
     depends_on('libxc@5.0:~cuda', when='@5.1.0:')
+
+    with when("+openmp"):
+        depends_on("openblas threads=openmp", when="^openblas")
+        depends_on("intel-oneapi-mkl threads=openmp", when="^intel-oneapi-mkl")
+        depends_on("fftw +openmp", when="^fftw")
+        depends_on("petsc +openmp", when="^petsc")
 
     # IOTK
     resource(
@@ -257,6 +268,19 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
                         r'libs="$libs $llocal $lSL $lPLA $lIO $lextlibs -lm"', 
                         'sbin/compilation/libraries.sh')
 
+    @run_before('configure')
+    def filter_oneapi(self):
+        # fix oneapi ifx issues
+        spec = self.spec
+        if '%oneapi' in spec:
+            filter_file('\*ifort\*', '*ifx*', 'configure')
+            filter_file('2021', '2023', 'configure')
+            filter_file('FC="\$\(fc\)"', 'FC=mpiifort', 'lib/iotk/Makefile.loc')
+            filter_file('#include \<stdlib.h\>', '#if defined _ypp || defined _a2y || defined _p2y || defined _c2y || defined _e2y || defined _eph2y\n #include <yambo_driver.h>\n#endif', 'lib/yambo/Ydriver/src/main/options_maker.c')
+            #filter_file('@FC@', 'mpiifort', 'lib/iotk/make_iotk.inc.in')
+            #filter_file('@F77@', 'mpiifort', 'lib/iotk/make_iotk.inc.in')
+            #filter_file('@CC@', 'mpiicc', 'lib/iotk/make_iotk.inc.in')
+
     def enable_or_disable_time(self, activated):
         return '--enable-time-profile' if activated else '--disable-time-profile'
 
@@ -276,11 +300,6 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
             env.set('MPICXX', 'mpicxx')
             env.set('MPIF77', 'mpif77')
             env.set('MPIFC', 'mpif90')
-        if 'intel' in spec['mpi'].name:
-            env.set('MPICC', '{0}/mpiicc'.format(spec['mpi'].prefix.mpi.latest.bin))
-            env.set('MPICXX', '{0}/mpiicpc'.format(spec['mpi'].prefix.mpi.latest.bin))
-            env.set('MPIF77', '{0}/mpiifort'.format(spec['mpi'].prefix.mpi.latest.bin))
-            env.set('MPIFC', '{0}/mpiifort'.format(spec['mpi'].prefix.mpi.latest.bin))
         if '%nvhpc' in spec:
             env.set('FC', "nvfortran")
             env.set('CPP', "cpp -E")
@@ -290,14 +309,31 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
         if '%intel' in spec:
             env.set('FPP', "ifort -E -free -P")
             env.set('FC', "ifort")
+            env.set('F77', "ifort")
             env.set('CC', "icc")
-            env.set('CXX', "icpc")
             env.set('CPP', "icc -E -ansi")
+            if 'intel' in spec['mpi'].name:
+                env.set('MPICC', 'mpiicc')
+                env.set('MPICXX', 'mpiicpc')
+                env.set('MPIF77', 'mpiifort')
+                env.set('MPIFC', 'mpiifort')
         if '%oneapi' in spec:
+            env.set('FC', "ifx")
+            env.set('F77', "ifx")
+            env.set('CC', "icx")
             env.set('FPP', "ifx -E -free -P")
-        if 'mkl' in spec:
-            if 'MKLROOT' not in os.environ:
-                env.set('MKLROOT', '{}/mkl/latest'.format(spec['blas'].prefix))
+            env.set('CPP', "icx -E -ansi")
+            #if '+openmp' in spec:
+            #    env.set('FCFLAGS', "-assume bscc -O3 -g -ip -nofor-main -qopenmp -parallel")
+            #else:
+            #    env.set('FCFLAGS', "-assume bscc -O3 -g -ip")
+            if 'intel' in spec['mpi'].name:
+                env.set('MPICC', 'mpiicx')
+                env.set('MPIF77', 'mpiifx')
+                env.set('MPIFC', 'mpiifx')
+        #if 'mkl' in spec:
+        #    if 'MKLROOT' not in os.environ:
+        #        env.set('MKLROOT', '{}/mkl/latest'.format(spec['mkl'].prefix))
 
     def configure_args(self):
         spec = self.spec
@@ -416,6 +452,13 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
                 args.append('--with-fft-libs=-qmkl=parallel')
             else:
                 args.append('--with-fft-libs=-qmkl=sequential')
+            #if '+openmp' in spec:
+            #    args.append('--with-fft-libs=-L{0}/lib/intel64 -lmkl_intel_lp64 '
+            #                '-lmkl_intel_thread -lmkl_core'.format(env['MKLROOT']))
+            #else:
+            #    args.append('--with-fft-libs=-L{0}/lib/intel64 -lmkl_intel_lp64 '
+            #                '-lmkl_sequential -lmkl_core'.format(env['MKLROOT']))
+            #args.append('--with-fft-includedir={0}/include/fftw'.format(env['MKLROOT']))
         else:
             args.append('--with-fft-path={0}'.format(spec['fftw-api'].prefix))
 
