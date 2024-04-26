@@ -72,10 +72,10 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     depends_on('petsc+complex~superlu-dist~hypre~metis+int64', when='+slepc')
     depends_on('petsc+mpi', when='+slepc+mpi')
     depends_on('petsc+double', when='+slepc+dp')
-    depends_on('petsc+cuda', when='@5.2.1:5.2.99 +slepc+cuda')
+    depends_on('petsc~cuda', when='@:5.2.0 +slepc')
     depends_on('slepc~arpack', when='+slepc')
     depends_on('slepc@:3.7.4', when='@:4.5.3 +slepc')
-    depends_on('slepc+cuda', when='@5.2.1:5.2.99 +slepc+cuda')
+    depends_on('slepc~cuda', when='@:5.2.0 +slepc')
     
     variant('openmp5', default=False, description='Build with OpenMP-GPU support')
     variant('openacc', default=False, description='Build with OpenACC')
