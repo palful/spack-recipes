@@ -68,7 +68,6 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     variant('scalapack', default=False, description='Activate support for parallel linear algebra with SCALAPACK')
     depends_on('scalapack', when='+scalapack')
     variant('slepc', default=False, description='Activate support for linear algebra with SLEPc and PETSc')
-    #depends_on('petsc+complex~superlu-dist~hypre~metis', when='+slepc')
     depends_on('petsc+complex~superlu-dist~hypre~metis+int64', when='+slepc')
     depends_on('petsc+mpi', when='+slepc+mpi')
     depends_on('petsc+double', when='+slepc+dp')
@@ -272,14 +271,11 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     def filter_oneapi(self):
         # fix oneapi ifx issues
         spec = self.spec
-        if '%oneapi' in spec:
+        if '%oneapi' in spec and '@5.0.0:5.2.99' in spec:
             filter_file('\*ifort\*', '*ifx*', 'configure')
             filter_file('2021', '2023', 'configure')
             filter_file('FC="\$\(fc\)"', 'FC=mpiifort', 'lib/iotk/Makefile.loc')
             filter_file('#include \<stdlib.h\>', '#if defined _ypp || defined _a2y || defined _p2y || defined _c2y || defined _e2y || defined _eph2y\n #include <yambo_driver.h>\n#endif', 'lib/yambo/Ydriver/src/main/options_maker.c')
-            #filter_file('@FC@', 'mpiifort', 'lib/iotk/make_iotk.inc.in')
-            #filter_file('@F77@', 'mpiifort', 'lib/iotk/make_iotk.inc.in')
-            #filter_file('@CC@', 'mpiicc', 'lib/iotk/make_iotk.inc.in')
 
     def enable_or_disable_time(self, activated):
         return '--enable-time-profile' if activated else '--disable-time-profile'
@@ -323,17 +319,10 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
             env.set('CC', "icx")
             env.set('FPP', "ifx -E -free -P")
             env.set('CPP', "icx -E -ansi")
-            #if '+openmp' in spec:
-            #    env.set('FCFLAGS', "-assume bscc -O3 -g -ip -nofor-main -qopenmp -parallel")
-            #else:
-            #    env.set('FCFLAGS', "-assume bscc -O3 -g -ip")
             if 'intel' in spec['mpi'].name:
                 env.set('MPICC', 'mpiicx')
                 env.set('MPIF77', 'mpiifx')
                 env.set('MPIFC', 'mpiifx')
-        #if 'mkl' in spec:
-        #    if 'MKLROOT' not in os.environ:
-        #        env.set('MKLROOT', '{}/mkl/latest'.format(spec['mkl'].prefix))
 
     def configure_args(self):
         spec = self.spec
@@ -363,60 +352,53 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
         args.extend(self.enable_or_disable('mpi'))
         args.extend(self.enable_or_disable('openmp'))
 
-        # Linear Algebra
-        if 'mkl' in spec and ('%intel' in spec or '%oneapi' in spec):
-            if '+openmp' in spec:
-                args.extend([
-                    '--with-blas-libs=-L{0}/lib/intel64 -lmkl_intel_lp64 '
-                    '-lmkl_intel_thread -lmkl_core -liomp5'.format(env['MKLROOT']),
-                    '--with-lapack-libs=-L{0}/lib/intel64 -lmkl_intel_lp64 '
-                    '-lmkl_intel_thread -lmkl_core -liomp5'.format(env['MKLROOT']),
-                ])
-            else:
-                args.extend([
-                    '--with-blas-libs=-L{0}/lib/intel64 -lmkl_intel_lp64 '
-                    '-lmkl_sequential -lmkl_core'.format(env['MKLROOT']),
-                    '--with-lapack-libs=-L{0}/lib/intel64 -lmkl_intel_lp64 '
-                    '-lmkl_sequential -lmkl_core'.format(env['MKLROOT']),
-                ])
-        elif 'mkl' in spec and '%gcc' in spec:
-            if '+openmp' in spec:
-                args.extend([
-                    '--with-blas-libs=-L{0}/lib/intel64 -lmkl_gf_lp64 '
-                    '-lmkl_gnu_thread -lmkl_core -lgomp'.format(env['MKLROOT']),
-                    '--with-lapack-libs=-L{0}/lib/intel64 -lmkl_gf_lp64 '
-                    '-lmkl_gnu_thread -lmkl_core -lgomp'.format(env['MKLROOT']),
-                ])
-            else:
-                args.extend([
-                    '--with-blas-libs=-L{0}/lib/intel64 -lmkl_gf_lp64 '
-                    '-lmkl_sequential -lmkl_core'.format(env['MKLROOT']),
-                    '--with-lapack-libs=-L{0}/lib/intel64 -lmkl_gf_lp64 '
-                    '-lmkl_sequential -lmkl_core'.format(env['MKLROOT']),
-                ])
-        elif 'mkl' in spec and '%nvhpc' in spec:
-            if '+openmp' in spec:
-                args.extend([
-                    '--with-blas-libs=-L{0}/lib/intel64 -lmkl_intel_lp64 '
-                    '-lmkl_pgi_thread -lmkl_core -pgf90libs -mp'.format(env['MKLROOT']),
-                    '--with-lapack-libs=-L{0}/lib/intel64 -lmkl_intel_lp64 '
-                    '-lmkl_pgi_thread -lmkl_core -pgf90libs -mp'.format(env['MKLROOT']),
-                ])
-            else:
-                args.extend([
-                    '--with-blas-libs=-L{0}/lib/intel64 -lmkl_intel_lp64 '
-                    '-lmkl_sequential -lmkl_core'.format(env['MKLROOT']),
-                    '--with-lapack-libs=-L{0}/lib/intel64 -lmkl_intel_lp64 '
-                    '-lmkl_sequential -lmkl_core'.format(env['MKLROOT']),
+        # MKL
+        mkl_lines = {
+            'intel': '-lmkl_gf_lp64 -lmkl_sequential -lmkl_core',
+            'intel_thr': '-lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5',
+            'oneapi': '-lmkl_gf_lp64 -lmkl_sequential -lmkl_core',
+            'oneapi_thr': '-lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5',
+            'gcc': '-Wl,--no-as-needed -lmkl_gf_lp64 -lmkl_sequential -lmkl_core',
+            'gcc_thr': '-lmkl_gf_lp64 -lmkl_gnu_thread -lmkl_core -lgomp',
+            'nvhpc': '-lmkl_intel_lp64 -lmkl_sequential -lmkl_core',
+            'nvhpc_thr': '-lmkl_intel_lp64 -lmkl_pgi_thread -lmkl_core -pgf90libs -mp',
+        }
+        mkl_line=''
+        if 'mkl' in spec:
+            mkl_line = "-L{0}/lib/intel64 ".format(env['MKLROOT'])
+            if '%intel' in spec or '%oneapi' in spec:
+                comp = "intel"
+            elif '%gcc' in spec:
+                comp = "gnu"
+            elif '%nvhpc' in spec:
+                comp = "pgi"
+            if "+openmp" in spec:
+                comp += "_thr"
+            mkl_line += mkl_lines[comp]
+            mkl_line += ' -lpthread -lm -ldl'
+
+            # BLAS/LAPACK
+            args.append(
+                '--with-blas-libs={0} --with-lapack-libs={0}'.format(mkl_line)
+                )
+            # FFT
+            args.extend([
+                '--with-fft-libs={0}'.format(mkl_line),
+                '--with-fft-includedir={0}'.format(env['MKLROOT'])
                 ])
         else:
+            # BLAS/LAPACK
             args.extend([
                 '--with-blas-libs={0}'.format(spec['blas'].libs),
                 '--with-lapack-libs={0}'.format(spec['lapack'].libs),
             ])
+            # FFT
+            args.append('--with-fft-path={0}'.format(spec['fftw-api'].prefix))
+
+        # ScaLAPACK
         if '+scalapack' in spec:
             args.append('--enable-par-linalg')
-            if 'mkl' in spec and 'intel' in spec['mpi'].name:
+            if 'mkl' in spec and 'intel' in spec['mpi'].name and '^netlib-scalapack' not in spec:
                 args.extend([
                     '--with-blacs-libs=-L{0}/lib/intel64 '
                     '-lmkl_blacs_intelmpi_lp64'.format(env['MKLROOT']),
@@ -428,6 +410,8 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
                     '--with-blacs-libs={0}'.format(spec['scalapack'].libs),
                     '--with-scalapack-libs={0}'.format(spec['scalapack'].libs),
                 ])
+
+        # PETSc + SLEPc
         if '+slepc' in spec:
             args.extend([
                 '--enable-slepc-linalg',
@@ -445,22 +429,6 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
         # Parallel I/O
         if '@4.4.0:' in spec:
             args.extend(self.enable_or_disable('parallel_io'))
-
-        # FFT
-        if 'mkl' in spec and ('%intel' in spec or '%oneapi' in spec):
-            if '+openmp' in spec:
-                args.append('--with-fft-libs=-qmkl=parallel')
-            else:
-                args.append('--with-fft-libs=-qmkl=sequential')
-            #if '+openmp' in spec:
-            #    args.append('--with-fft-libs=-L{0}/lib/intel64 -lmkl_intel_lp64 '
-            #                '-lmkl_intel_thread -lmkl_core'.format(env['MKLROOT']))
-            #else:
-            #    args.append('--with-fft-libs=-L{0}/lib/intel64 -lmkl_intel_lp64 '
-            #                '-lmkl_sequential -lmkl_core'.format(env['MKLROOT']))
-            #args.append('--with-fft-includedir={0}/include/fftw'.format(env['MKLROOT']))
-        else:
-            args.append('--with-fft-path={0}'.format(spec['fftw-api'].prefix))
 
         # Other dependencies
         args.append('--with-libxc-path={0}'.format(spec['libxc'].prefix))
