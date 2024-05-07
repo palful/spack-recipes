@@ -31,8 +31,8 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     maintainers = ['nicspalla']
 
     version('develop', branch='develop', git="https://github.com/yambo-code/yambo-devel")
-    version('develop-bugfixes', branch='bug-fixes', git="https://github.com/yambo-code/yambo-devel")
-    version('develop-gpu', branch='tech/devel-gpu', git="https://github.com/yambo-code/yambo-devel")
+    #version('develop-bugfixes', branch='bug-fixes', git="https://github.com/yambo-code/yambo-devel")
+    #version('develop-gpu', branch='tech/devel-gpu', git="https://github.com/yambo-code/yambo-devel")
     version('5.2.3', sha256='a6168d1fa820af857ac51217bd6ad26dda4cc89c07e035bd7dc230038ae1ab9c')
     version('5.2.2', sha256='2ddd6356830ce9302e304b7627cff3aa973846cf893f91742b4390d0b53d63d4')
     version('5.2.1', sha256='0ac362854313927d75bbf87be98ff58447f3805f79724c38dc79df07f03a7046')
@@ -180,8 +180,8 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     )
     resource(
        name='Ydriver',
-       url='https://github.com/yambo-code/Ydriver/archive/refs/tags/1.3.0.tar.gz',
-       sha256='3cc30ce050d806b73cd12a806f1e015943f68fb8774bc9a13d246e8b30316dc1',
+       url='https://github.com/yambo-code/Ydriver/archive/refs/tags/1.4.tar.gz',
+       sha256='a3ac8de158fcd76cfb7c137f7096cff2d95eb9db2fe207d54476c73013f1406e',
        destination='lib/yambo/Ydriver',
        placement={'config': 'config',
                   'configure': 'configure',
