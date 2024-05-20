@@ -30,9 +30,10 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
 
     maintainers = ['nicspalla']
 
-    version('develop', branch='develop', git="https://github.com/yambo-code/yambo-devel")
-    #version('develop-bugfixes', branch='bug-fixes', git="https://github.com/yambo-code/yambo-devel")
-    #version('develop-gpu', branch='tech/devel-gpu', git="https://github.com/yambo-code/yambo-devel")
+    version('develop-develop', branch='develop', git="https://github.com/yambo-code/yambo-devel")
+    version('develop-bugfixes', branch='bug-fixes', git="https://github.com/yambo-code/yambo-devel")
+    version('develop-gpu', branch='tech/devel-gpu', git="https://github.com/yambo-code/yambo-devel")
+    version('develop-bareh', branch='phys-gw-from-bareH', git="https://github.com/palful/yambo.git")
     version('5.2.3', sha256='a6168d1fa820af857ac51217bd6ad26dda4cc89c07e035bd7dc230038ae1ab9c')
     version('5.2.2', sha256='2ddd6356830ce9302e304b7627cff3aa973846cf893f91742b4390d0b53d63d4')
     version('5.2.1', sha256='0ac362854313927d75bbf87be98ff58447f3805f79724c38dc79df07f03a7046')
@@ -180,6 +181,22 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
     )
     resource(
        name='Ydriver',
+       url='https://github.com/yambo-code/Ydriver/archive/refs/tags/1.2.0.tar.gz',
+       sha256='0f29a44e9c4b49d3f6be3f159a7ef415932b2ae2f2fdba163af60a0673befe6e',
+       destination='lib/yambo/Ydriver',
+       placement={'config': 'config',
+                  'configure': 'configure',
+                  'example': 'example',
+                  'include': 'include',
+                  'lib': 'lib',
+                  'bin': 'bin',
+                  'Makefile': 'Makefile',
+                  'src': 'src',
+              },
+       when='@develop-bareh'
+    )
+    resource(
+       name='Ydriver',
        url='https://github.com/yambo-code/Ydriver/archive/refs/tags/1.4.tar.gz',
        sha256='a3ac8de158fcd76cfb7c137f7096cff2d95eb9db2fe207d54476c73013f1406e',
        destination='lib/yambo/Ydriver',
@@ -192,7 +209,7 @@ class Yambo(AutotoolsPackage,CudaPackage,ROCmPackage):
                   'Makefile': 'Makefile',
                   'src': 'src',
               },
-       when='@develop:'
+       when='@develop-develop'
     )
 
     # Sanity check
